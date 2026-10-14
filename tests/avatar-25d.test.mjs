@@ -15,7 +15,9 @@ test('all existing five names have a distinct 2.5D illustration and accent',()=>
     assert.match(svg,/class=".*2d5-eyes/);
     assert.match(svg,/class=".*2d5-mouth-open/);
     assert.match(svg,/class=".*2d5-head/);
-    assert.match(svg,/class=".*2d5-body/);
+    assert.doesNotMatch(svg,/avatar25-body|2d5-body|avatar25-shoulder|avatar25-torso/);
+    assert.match(svg,/class="avatar25-head 2d5-head"/);
+    assert.match(svg,/class="avatar25-float avatar25-head-only"/);
     assert.ok(svg.length>4000);
   }
 });
@@ -43,4 +45,8 @@ test('expression states correspond to listening, speaking, thinking',()=>{
   assert.equal(expressionFor('connecting'),'thinking');
   assert.equal(expressionFor('emergency'),'concerned');
   assert.equal(expressionFor('whatever'),'calm');
+});
+test('each head has a recognizable, unique accessory or silhouette',()=>{
+  const distinct={nomi:/avatar25-antenna/,mira:/avatar25-human-hair/,kiki:/avatar25-fox-ears/,aria:/avatar25-hologram-halo/,bobo:/avatar25-bunny-ears/};
+  for(const [id,signature] of Object.entries(distinct))assert.match(avatarMarkup(id),signature);
 });
