@@ -47,7 +47,8 @@ export function avatarMarkup(id,prefix='rainy25'){
     <g class="avatar25-orbit" opacity=".73"><circle cx="400" cy="371" r="310" stroke="#fff" stroke-width="2.5" fill="none"/><circle cx="400" cy="371" r="280" stroke="${p.tint}" stroke-width="2" stroke-dasharray="5 21" fill="none"/><path d="M635 145 L645 169 L668 178 L644 187 L635 211 L626 187 L604 178 L627 169Z" fill="#fff"/><path d="M172 258 L180 274 L196 280 L179 286 L172 302 L166 286 L150 280 L166 274Z" fill="${p.tint}"/></g>
     <!-- 2.5D head only, no neck, shoulders or torso -->
     <ellipse cx="400" cy="671" rx="168" ry="17" fill="${p.deep}" opacity=".06" filter="url(#${token}-blur)"/>
-    <g class="avatar25-float avatar25-head-only" transform="translate(400 390) scale(1.32) translate(-400 -350)">
+    <g class="avatar25-float avatar25-head-only">
+      <g transform="translate(400 390) scale(1.32) translate(-400 -350)">
       <g class="${({nomi:'avatar25-antenna',mira:'avatar25-human-hair',kiki:'avatar25-fox-ears',aria:'avatar25-hologram-halo',bobo:'avatar25-bunny-ears'})[valid]}">${headAccessory(valid,p)}</g>
       <g class="avatar25-head 2d5-head">
         ${headShape(valid,p,token)}
@@ -61,6 +62,7 @@ export function avatarMarkup(id,prefix='rainy25'){
         </g>
         ${valid==='kiki'?'<path d="M270 393 L300 400 M270 416 L297 419 M531 393 L500 400 M531 416 L502 419" stroke="#ffdac1" stroke-width="5" stroke-linecap="round" opacity=".75"/>':''}
         ${valid==='aria'?'<path d="M271 263 Q400 229 528 262" stroke="#fff" stroke-width="8" opacity=".39" fill="none"/>':''}
+      </g>
       </g>
     </g>
   </g></svg>`;
