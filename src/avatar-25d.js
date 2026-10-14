@@ -45,18 +45,10 @@ export function avatarMarkup(id,prefix='rainy25'){
   <g clip-path="url(#${token}-mask)">
     <ellipse cx="400" cy="379" rx="325" ry="338" fill="url(#${token}-halo)"/>
     <g class="avatar25-orbit" opacity=".73"><circle cx="400" cy="371" r="310" stroke="#fff" stroke-width="2.5" fill="none"/><circle cx="400" cy="371" r="280" stroke="${p.tint}" stroke-width="2" stroke-dasharray="5 21" fill="none"/><path d="M635 145 L645 169 L668 178 L644 187 L635 211 L626 187 L604 178 L627 169Z" fill="#fff"/><path d="M172 258 L180 274 L196 280 L179 286 L172 302 L166 286 L150 280 L166 274Z" fill="${p.tint}"/></g>
-    <g class="avatar25-body 2d5-body">
-      <ellipse cx="400" cy="748" rx="260" ry="42" fill="${p.deep}" opacity=".10"/>
-      <path d="M200 680 Q205 582 333 555 Q397 543 464 555 Q591 580 600 680 L616 813 H184Z" fill="${p.deep}" opacity=".22" transform="translate(0 13)"/>
-      <path d="M202 682 Q215 588 331 555 Q400 541 470 556 Q589 590 601 684 L614 814 H186Z" fill="url(#${token}-jacket)" stroke="#fff" stroke-width="11"/>
-      <path d="M301 574 Q400 659 498 576" fill="none" stroke="#fff" stroke-width="16" opacity=".79"/>
-      <path d="M333 578 Q402 635 469 578" fill="none" stroke="${p.deep}" stroke-width="9" opacity=".38"/>
-      <rect x="364" y="579" width="72" height="71" rx="31" fill="${p.deep}" opacity=".67"/>
-      <circle cx="400" cy="692" r="47" fill="#fff" opacity=".8"/><circle cx="400" cy="692" r="35" fill="${p.tint}"/><path d="M400 677 V707 M385 692 H415" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
-      <path d="M238 668 Q246 622 284 603" fill="none" stroke="#fff" stroke-width="12" opacity=".67" stroke-linecap="round"/>
-    </g>
-    <g class="avatar25-float">
-      ${headAccessory(valid,p)}
+    <!-- 2.5D head only, no neck, shoulders or torso -->
+    <ellipse cx="400" cy="671" rx="168" ry="17" fill="${p.deep}" opacity=".06" filter="url(#${token}-blur)"/>
+    <g class="avatar25-float avatar25-head-only" transform="translate(400 390) scale(1.32) translate(-400 -350)">
+      <g class="${({nomi:'avatar25-antenna',mira:'avatar25-human-hair',kiki:'avatar25-fox-ears',aria:'avatar25-hologram-halo',bobo:'avatar25-bunny-ears'})[valid]}">${headAccessory(valid,p)}</g>
       <g class="avatar25-head 2d5-head">
         ${headShape(valid,p,token)}
         <g class="avatar25-gaze">${eyeMarkup}</g>
