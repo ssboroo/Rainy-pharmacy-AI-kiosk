@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,validateCatalog,validateSettings} from '../server/core.mjs';
+test('any avatar can be changed later by admin',()=>{for(const avatar of AVATARS) assert.equal(validateSettings({defaultAvatar:avatar.id}).defaultAvatar,avatar.id);assert.throws(()=>validateSettings({defaultAvatar:'unknown'}),/танигдсангүй/);});
+test('agent ID is replaceable',()=>{const result=validateSettings({agentId:'agent_abc123',pharmacyName:'Салбар 1'},DEFAULT_SETTINGS);assert.equal(result.agentId,'agent_abc123');assert.equal(result.pharmacyName,'Салбар 1');});
+test('catalog search supports Mongolian and Latin names',()=>{assert.equal(searchCatalog('парац',DEMO_CATALOG)[0].id,'demo-paracetamol');assert.equal(searchCatalog('ibupro',DEMO_CATALOG)[0].id,'demo-ibuprofen');});
+test('dose requests are escalated',()=>{const a=evaluateQuestion('Парацетамолыг хэдэн ширхэг уух вэ?');assert.equal(a.kind,'pharmacist');assert.equal(a.requiresPharmacist,true);});
+test('emergency is escalated before medicine lookup',()=>{const a=evaluateQuestion('Парацетамол уусны дараа амьсгал боогдож байна');assert.equal(a.kind,'emergency');assert.match(a.reply,/103/);});
+test('demo medicine does not invent price',()=>{const a=evaluateQuestion('Ибупрофен үнэ хэд вэ?');assert.equal(a.kind,'demo');assert.doesNotMatch(a.reply,/\d{4,} ₮/);});
+test('unrecognized medicine must go to pharmacist',()=>assert.equal(evaluateQuestion('МэдэхгүйЭмX хаана байна?').requiresPharmacist,true));
+test('verified items need provenance',()=>{assert.throws(()=>validateCatalog([{name:'X',verified:true}]),/эх сурвалж/);const x=validateCatalog([{name:'X',verified:true,sourceUrl:'https://example.org/x',verifiedAt:'2026-10-14',stock:2}]);assert.equal(x[0].verified,true);});
+test('duplicate IDs rejected',()=>assert.throws(()=>validateCatalog([{name:'A',id:'x'},{name:'B',id:'x'}]),/ID/));
+test('color settings validated',()=>assert.throws(()=>validateSettings({accent:'red'}),/Өнгө/));
