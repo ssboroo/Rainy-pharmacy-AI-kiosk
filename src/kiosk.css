@@ -1,0 +1,80 @@
+/* Dedicated immersive pharmacy kiosk layout — no external avatar asset required. */
+.stage-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.setup-mic,.setup-screen{border:1px solid #ffffffce;background:#ffffffb8;padding:10px 12px;border-radius:999px;color:#37675b;font-size:10px;font-weight:800;box-shadow:0 3px 10px #337f6020}
+.setup-mic.enabled{background:#d5fce9;border-color:#81dbad;color:#186e51}
+.setup-screen{background:#284d48;color:#fff}
+.mic-privacy{font-size:10px;color:#547e6d;line-height:1.4;max-width:380px;margin:6px auto 7px}
+.kiosk-wake-callout{font-size:18px;font-weight:800;letter-spacing:-.6px;margin:3px 0 6px;color:#256d5d}
+.meter-label{display:block;margin-bottom:3px;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;color:#5d9b82}
+.voice-halo{pointer-events:none;position:absolute;z-index:0;left:50%;top:48%;width:min(65%,420px);aspect-ratio:1;border-radius:50%;border:8px solid #ffffff8c;box-shadow:0 0 30px #a5f3d0,0 0 90px #b1eddd,inset 0 0 60px #ffffff91;transform:translate(-50%,-50%);will-change:transform,opacity}
+.portrait{--mouth-level:0;--face-lift:0px;transform-origin:center 48%;filter:drop-shadow(0 14px 25px #5caca75b)}
+.portrait .avatar-face{background:radial-gradient(ellipse at 45% 8%,#fff 0%,var(--shell) 63%,#cdece6 100%);box-shadow:inset 0 -16px 20px #69a9a51f,inset 0 5px 17px #ffffffa8,0 18px 26px #26787524}
+.portrait .avatar-face:after{content:'';position:absolute;top:7px;left:21px;width:55%;height:27px;border-radius:50%;background:#ffffff77;filter:blur(7px);pointer-events:none}
+.portrait .avatar-body{background:linear-gradient(135deg,#fff7,var(--body) 34%,#296e7227 87%);box-shadow:inset 0 8px 15px #fff6,0 15px 35px #3e9e8e45}
+.portrait .avatar-eye{transition:height .16s,top .16s,transform .16s;box-shadow:0 0 5px #22645c48}
+.portrait[data-expression="attentive"] .avatar-eye{height:34px;top:54px}
+.portrait[data-expression="thinking"] .avatar-eye{transform:rotate(-8deg)}
+.portrait[data-expression="warm"] .avatar-blush{opacity:1}
+.portrait.speaking .avatar-mouth{animation:none!important;top:91px;left:50%;width:19px;height:calc(8px + var(--mouth-level) * 30px);border:2px solid var(--detail);border-radius:48%;background:linear-gradient(#704355,#ffadc1);transform:translateX(-50%) translateY(var(--face-lift));transition:height 70ms linear,transform 70ms linear}
+.portrait.listening .avatar-ears:before,.portrait.listening .avatar-ears:after{box-shadow:inset 0 0 0 9px #376969,0 0 20px #a5f9d5}
+.waveform{min-height:55px!important;height:55px!important;align-items:center!important}
+.waveform i{animation:none!important;transition:height 70ms linear,opacity 70ms linear;max-height:56px;width:4px!important;border-radius:5px;background:linear-gradient(180deg,#1d987e,#89edc3)}
+.stage-card{min-height:670px}
+.stage-persona{min-height:340px}
+.kiosk-dock{display:none}
+@media(min-width:1050px){
+ .stage-card .portrait{animation:premiumFloat 5s ease-in-out infinite}
+ @keyframes premiumFloat{0%,100%{transform:translateY(0) scale(1.27)}50%{transform:translateY(-8px) scale(1.27)}}
+}
+@media(max-width:1049px) {
+ .stage-card .portrait{animation:premiumFloatSmall 5s ease-in-out infinite}
+ @keyframes premiumFloatSmall{0%,100%{transform:translateY(0) scale(1.1)}50%{transform:translateY(-8px) scale(1.1)}}
+}
+body.immersive-kiosk{overflow:hidden}
+.immersive-kiosk .stage-card{position:fixed;inset:0;z-index:40;width:100vw;height:100dvh;min-height:0;max-height:100dvh;border-radius:0;overflow:hidden;padding:clamp(12px,2.5vh,28px) clamp(14px,3vw,55px) clamp(10px,2vh,26px);background:radial-gradient(ellipse at 48% 44%,#dbfcf0 0,#d0f3e8 38%,#ddf3f0 69%,#f3fcf8 100%)}
+.immersive-kiosk .stage-top{flex-shrink:0}
+.immersive-kiosk .stage-persona{flex:1;min-height:0}
+.immersive-kiosk .stage-caption{z-index:4}
+.immersive-kiosk .stage-caption .name-row h2{font-size:clamp(28px,3.7vw,56px)}
+.immersive-kiosk .stage-controls{padding-top:1vh}
+.immersive-kiosk .stage-controls #micBtn{display:none}
+.immersive-kiosk .stage-controls .voice-hint{display:none}
+.immersive-kiosk .stage-persona .voice-halo{width:min(55vw,65vh);top:51%}
+.immersive-kiosk .portrait{animation:immersiveFloat 5.5s ease-in-out infinite!important;transform-origin:center 48%}
+@keyframes immersiveFloat{0%,100%{transform:translateY(0) scale(var(--immersive-scale,2.15))}50%{transform:translateY(-7px) scale(var(--immersive-scale,2.15))}}
+.immersive-kiosk .kiosk-wake-callout{font-size:clamp(19px,2.8vw,36px)}
+.immersive-kiosk .mic-privacy{font-size:clamp(10px,.85vw,14px)}
+.immersive-kiosk .waveform{height:70px!important;min-height:70px!important}
+.immersive-kiosk .kiosk-dock{position:absolute;right:clamp(13px,2vw,42px);bottom:clamp(15px,4vh,52px);z-index:6;display:flex;flex-direction:column;gap:10px}
+.immersive-kiosk .kiosk-dock button{min-width:150px;text-align:left;padding:14px 16px;border:1px solid #b9e6d5;border-radius:14px;background:#ffffffc9;color:#1f584c;font-weight:800;font-size:12px;box-shadow:0 7px 18px #26634b12}
+.immersive-kiosk .kiosk-dock button:hover{background:#fff}
+.immersive-kiosk .kiosk-dock #kioskExitBtn{min-width:0;align-self:flex-end;padding:9px 13px}
+.immersive-kiosk .stage-decor.decor-1{width:min(63vw,69vh);height:min(63vw,69vh);top:16%;border-width:3px}
+.immersive-kiosk .stage-decor.decor-2{width:min(80vw,85vh);height:min(80vw,85vh);top:8%;border-width:3px}
+.immersive-kiosk .stage-top .setup-mic,.immersive-kiosk .stage-top .setup-screen{font-size:clamp(10px,1vw,13px)}
+.immersive-kiosk .meter-label{font-size:clamp(10px,1vw,14px)}
+@media(min-width:1500px) and (min-height:850px){
+ .immersive-kiosk .portrait{--immersive-scale:2.55}
+}
+@media(max-height:670px) {
+ .immersive-kiosk .portrait{--immersive-scale:1.42}
+ .immersive-kiosk .stage-caption .waveform{height:36px!important;min-height:36px!important}
+ .immersive-kiosk .stage-caption .name-row h2{font-size:28px}
+ .immersive-kiosk .kiosk-wake-callout{font-size:18px}
+}
+@media(max-width:700px){
+ .stage-card{min-height:555px}
+ .stage-top{flex-wrap:wrap}
+ .stage-actions{gap:5px}
+ .setup-mic,.setup-screen{font-size:9px;padding:8px}
+ .stage-persona{min-height:290px}
+ .kiosk-wake-callout{font-size:16px}
+ .immersive-kiosk .portrait{--immersive-scale:1.43}
+ .immersive-kiosk .kiosk-dock{bottom:18px;right:10px;gap:6px}
+ .immersive-kiosk .kiosk-dock button{min-width:0;padding:10px 11px;font-size:11px}
+ .immersive-kiosk .kiosk-dock button span{display:none}
+ .immersive-kiosk .stage-top .language-chip{display:none}
+ .immersive-kiosk .stage-top .live-status{font-size:9px}
+ .immersive-kiosk .mic-privacy{max-width:240px}
+}
+@media(prefers-reduced-motion:reduce){.immersive-kiosk .portrait,.stage-card .portrait{animation:none!important;transform:scale(1)!important}}
