@@ -131,3 +131,16 @@ Before pharmacy rollout: verified Mongolian medicines catalog, pharmacist approv
 ElevenLabs SDK defaults to blob/data-based AudioWorklets. The kiosk's strict `script-src 'self'` CSP blocks them, resulting in `Failed to load the rawAudioProcessor worklet module`. Build now **copies version-matched upstream processors** from `@elevenlabs/client/worklets/rawAudioProcessor.js` and `audioConcatProcessor.js` to `public/vendor/elevenlabs/` **before** Vite generates `dist`. `Conversation.startSession` uses same-origin `workletPaths` for WebSocket signed-URL connections, without weakening the CSP. The service worker never intercepts those processor URLs, avoiding HTML/offline fallbacks. After deploy, verify that both URLs return HTTP 200 with a JavaScript content type and contain `registerProcessor`.
 
 This fixes the reported CSP AudioWorklet issue; it does **not** replace microphone permission, agent provider configuration or licensed pharmacist sign-off. Test voice on a supported browser (current Chrome/Edge via HTTPS). Ask the kiosk operator to refresh/reload once after deployment.
+
+
+## RAINY Insights: pharmacy business ROI dashboard
+
+After logging into /admin.html, the owner sees privacy-preserving day-by-day metrics for 7/30/90 days: device-initiated interaction counts (not unique customers), typed questions processed on our server, VERIFIED catalog answers, UNVERIFIED demo information, unanswered questions, pharmacist referrals, emergency escalations, medicine details viewed, ElevenLabs voice connections / browser-observed AI messages, and pharmacist handoff requests. No mock usage statistics are seeded: reporting starts at zero. Metrics accumulate in /app/storage/analytics.json on the persistent Railway volume, separated from catalog/settings.
+
+Daily counters can be exported to CSV only using an authenticated administrator request. The report does NOT store/transmit question text, medicine names, patient details, audio, transcription, IP addresses or individual session identifiers. Public browser telemetry is intentionally low-trust (usable only for operational insight, not audits/billing). Server-side verified catalog answers are recorded separately.
+
+The potential staff time saved card is an interactive assumption, default 2 minutes per VERIFIED catalog answer, not a factual observed wait-time reduction or monetary ROI. For a genuine customer-facing sales case, establish baseline staffing, pharmacist-reviewed catalog/POS data, and opt-in time studies before publishing financial impact claims.
+
+Customer deployment note: The current app is one independent kiosk/one pharmacy instance. To sell to multiple organizations in production, give each pharmacy its own isolated deployment and storage/ADMIN_TOKEN or build a proper multi-tenant service with per-tenant authentication, access control and data partitions. Do NOT share a single admin token or shared analytics file among pharmacy customers.
+
+Operational privacy: Inform visitors that wake-word detection/browser voice services may send microphone input to external providers; no conversation content is included in this analytics dashboard. Clinical triage decisions must be handled by a licensed pharmacist.

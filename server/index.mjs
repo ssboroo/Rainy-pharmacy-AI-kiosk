@@ -3,6 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readFile,writeFile,rename,mkdir,stat} from 'node:fs/promises';
 import {timingSafeEqual} from 'node:crypto';
+import {createAnalyticsStore,analyticsCSV,metricForAnswer} from './analytics.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -10,6 +11,7 @@ const root=path.resolve(here,'..'),dist=path.join(root,'dist');
 const dataDir=path.resolve(process.env.DATA_DIR||path.join(root,'storage'));
 const settingsPath=path.join(dataDir,'settings.json');
 const catalogPath=path.join(dataDir,'catalog.json');
+const analytics=createAnalyticsStore({filePath:path.join(dataDir,'analytics.json')});
 const port=Number(process.env.PORT||3000);
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
 async function loadData(){
@@ -157,21 +159,56 @@ async function handle(req,res){
       demoMode:catalog.some(v=>!v.verified)
     });
     if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',catalog),demoMode:catalog.some(v=>!v.verified)});
+    if(req.method==='POST'&&route==='/api/analytics/event'){
+      const value=await bodyJson(req,350);
+      // Public events contain a fixed enum only. Never record a question, identity, drug name or transcript.
+      if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==1||typeof value.event!=='string'){
+        return respond(res,400,{error:'Зөвхөн зөвшөөрөгдсөн event нэрийг илгээнэ.'});
+      }
+      try{await analytics.recordPublic(value.event);}
+      catch(error){if(error.message==='Invalid public event.')return respond(res,400,{error:'Event нэр зөвшөөрөгдөөгүй.'});throw error;}
+      return respond(res,200,{recorded:true});
+    }
     if(req.method==='POST'&&route==='/api/ask'){
       const value=await bodyJson(req,4000);
       if(typeof value.question!=='string'||value.question.length>500)return respond(res,400,{error:'Асуултын урт буруу.'});
-      return respond(res,200,evaluateQuestion(value.question,catalog));
+      const answer=evaluateQuestion(value.question,catalog);
+      await analytics.recordInternal(metricForAnswer(answer));
+      return respond(res,200,answer);
     }
     if(req.method==='POST'&&route==='/api/vision'){
       const value=await bodyJson(req);
       if(value.consent!==true)return respond(res,400,{error:'Зургийг AI-д илгээх зөвшөөрөл шаардлагатай.'});
-      return respond(res,200,await vision(value.image));
+      await analytics.recordInternal(['visionAttempts']);
+      const result=await vision(value.image);
+      if(result.matches?.length)await analytics.recordInternal(['visionRecognitions']);
+      return respond(res,200,result);
     }
-    if(req.method==='POST'&&route==='/api/handoff')return respond(res,200,await handoff());
+    if(req.method==='POST'&&route==='/api/handoff'){
+      await analytics.recordInternal(['staffRequests']);
+      const result=await handoff();
+      if(result.sent)await analytics.recordInternal(['staffRequestsSent']);
+      return respond(res,200,result);
+    }
     if(req.method==='GET'&&route==='/api/agent/signed-url')return respond(res,200,await signedUrl());
     if(route.startsWith('/api/admin/')){
       if(!process.env.ADMIN_TOKEN||process.env.ADMIN_TOKEN.length<24)return respond(res,503,{error:'ADMIN_TOKEN тохируулаагүй.'});
       if(!isAdmin(req))return respond(res,401,{error:'Зөвшөөрөлгүй.'});
+      if(req.method==='GET'&&route==='/api/admin/analytics'){
+        return respond(res,200,analytics.report(url.searchParams.get('days')));
+      }
+      if(req.method==='GET'&&route==='/api/admin/analytics.csv'){
+        const report=analytics.report(url.searchParams.get('days'));
+        const csv=analyticsCSV(report);
+        res.writeHead(200,{
+          'Content-Type':'text/csv; charset=utf-8',
+          'Content-Disposition':'attachment; filename="rainy-pharmacy-analytics-'+report.from+'-to-'+report.to+'.csv"',
+          'Cache-Control':'no-store',
+          'X-Content-Type-Options':'nosniff'
+        });
+        res.end(csv);
+        return;
+      }
       if(req.method==='GET'&&route==='/api/admin/voice-status')return respond(res,200,agentDiagnostics());
       if(req.method==='POST'&&route==='/api/admin/voice-test')return respond(res,200,await checkAgentConnection());
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings});
@@ -200,4 +237,5 @@ async function handle(req,res){
   }
 }
 await loadData();
+await analytics.load();
 http.createServer(handle).listen(port,'0.0.0.0',()=>console.log('RAINY Pharmacy on port '+port));
