@@ -101,8 +101,27 @@ Before pharmacy rollout: verified Mongolian medicines catalog, pharmacist approv
 
 **Нууцлал:** Ойр байгаа хүмүүсийн яриа browser-ийн Speech Recognition provider-д дамжиж болох тул үйлчлүүлэгчид ойлгомжтой анхааруулга, байгууллагын зөвшөөрлийн журам шаардлагатай. Browser permission нь төхөөрөмж, site origin-той холбоотой бөгөөд OS-ийн бодлогоос хамаарна.
 
-## Premium 3D avatar engine
+## Өмнөх 3D хөдөлгүүр — ашиглахаа больсон
+
+**2026-10-14:** Хэрэглэгчийн хүсэлтээр 3D загварыг үндсэн интерфейсээс бүрэн салгаж, 2.5D head-only дүрүүдээр сольсон. Доорх хуучин мэдээлэл нь архивын тайлбар юм.
+
+## Premium 3D avatar engine (архив)
 
 `src/avatar-3d.js` uses Three.js WebGL2 + physically based materials to render **five distinct procedural 3D characters** (robots, a stylized human avatar and hologram). Facial rig reacts to live ElevenLabs input/output signal level (energy lip sync, **not phoneme-accurate** visemes). Eye blinking, brows, head and idle breathing are stateful. Idle and fullscreen are responsive via ResizeObserver, capped devicePixelRatio for kiosk hardware. Failed/lost GPU context falls back to the existing 2D CSS avatar. Actual photoreal human/GLB avatar models and precise viseme retargeting are separate work, not shipped in this version.
 
 **Agent ID:** admin login at `/admin.html` → *ElevenLabs Agent ID* → Save. Permanent settings require Railway volume mounted at `/app/storage` and `DATA_DIR=/app/storage`. Alternatively set `ELEVENLABS_AGENT_ID` in Railway Variables (server fallback). Set secret `ELEVENLABS_API_KEY` only in Railway Variables; it is never included in frontend output. Voice remains disabled until a licensed pharmacist approves the agent knowledge and policies and explicitly enables `VOICE_AGENT_CLINICAL_APPROVED=true`. No clinical advice by default.
+
+
+## Одоогийн 2.5D AI дүрүүд — зөвхөн том толгой
+
+Хэрэглэгчийн дэлгэцэнд зөвхөн **AI дүрийн толгой** харагдана. Цээж, мөр, хүзүү байхгүй. src/avatar-25d.js нь гаднын зураг, WebGL, Three.js ашиглахгүй SVG vector илэрхийллийг үүсгэдэг.
+
+- **Номи:** цагаан/ногоон робот толгой, гэрэлт антенн, чихэвч хэлбэрийн хоёр тал
+- **Мира:** дулаан хүн төрх, өвөрмөц үс, зөөлөн нүүрний хувирал
+- **Кики:** тоорын өнгөтэй үнэгэн чихтэй AI толгой
+- **Ариа:** цэнхэр hologram/halo эффект
+- **Бобо:** сарнайн өнгөтэй туулайн чихтэй AI толгой
+
+Бүгд толгой дохих, нүд анивчлах, харц дагах, сонсох/бодох/ярих төлөв болон real-time waveform-тэй. Зөвшөөрөгдсөн ElevenLabs Agent ажиллаж байгаа үед дууны хүчээр амны хөдөлгөөн хэмжигдэнэ. Энэ нь яг үг/авианд тохируулсан viseme lip-sync биш.
+
+Микрофон, wake greeting, эмийн аюулгүй байдлын хамгаалалт, admin Agent ID тохиргоо болон Railway volume хэвээр хадгалагдсан. Fullscreen үед толгой томорно; гар утас, таблет дээр SVG өөрөө хэмжээгээ тааруулна. GPU 3D шаардлагагүй.

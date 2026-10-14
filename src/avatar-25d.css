@@ -1,0 +1,130 @@
+/*
+ * RAINY 2.5D portraits — art directed vector layers + gentle expressive movement.
+ * No WebGL, external font, third-party character image, or heavy animation loop.
+ */
+.stage-persona { isolation:isolate; min-height:410px }
+#avatar25 {
+  position:absolute; inset:0; z-index:3;
+  display:grid;place-items:center;
+  --look-x:0px;--look-y:0px;--head-turn:0deg;--sound-level:0;
+  pointer-events:auto;overflow:hidden;transform:translateZ(0);
+}
+#avatar25 .rainy-2d5-portrait {
+  display:block;width:100%;height:100%;max-width:780px;max-height:740px;
+  overflow:visible;object-fit:contain;
+  transform:scale(1.16) translateY(1.5%);
+  filter:drop-shadow(0 18px 28px rgba(29,103,104,.18));
+}
+.stage-persona.avatar-25d-ready #avatarMount{visibility:hidden}
+.stage-persona.avatar-25d-ready .avatar-glow{opacity:.18}
+.stage-persona.avatar-25d-ready #avatar25{opacity:1}
+.stage-persona.avatar-25d-ready #voiceHalo{opacity:.34}
+.avatar25-float {
+  animation: avatar25-float 5.4s ease-in-out infinite;
+  transform-origin:50% 56%;
+}
+.avatar25-head {
+  transform-origin:400px 365px;
+  transform:translate(var(--look-x),var(--look-y)) rotate(var(--head-turn));
+  transition:transform .3s cubic-bezier(.22,.75,.2,1);
+}
+.avatar25-gaze {
+  transform:translate(calc(var(--look-x) * .35),calc(var(--look-y) * .25));
+  transition:transform .25s ease;
+}
+.avatar25-orbit{transform-origin:400px 371px;animation:avatar25-orbit 26s linear infinite}
+.avatar25-eye{transform-origin:center center;animation:avatar25-attention 5.4s ease-in-out infinite}
+.avatar25-eye:nth-child(2){animation-delay:.12s}
+.avatar25-eyelid {
+  opacity:0;transform-origin:center center;
+  animation:avatar25-blink 5.8s ease-in-out infinite;
+}
+.avatar25-mouth-smile{opacity:1;transition:opacity .12s ease}
+#avatar25[data-expression="speaking"] .avatar25-mouth-smile {opacity:0}
+#avatar25[data-expression="attentive"] .avatar25-head {filter:drop-shadow(0 1px 3px #e2fbff)}
+#avatar25[data-expression="thinking"] .avatar25-head {transform:translate(var(--look-x),var(--look-y)) rotate(-3deg)}
+#avatar25[data-expression="concerned"] .avatar25-head {transform:translate(var(--look-x),var(--look-y)) rotate(2deg)}
+#avatar25[data-expression="speaking"] .avatar25-head {transform:translate(var(--look-x),var(--look-y)) rotate(var(--head-turn)) translateY(calc(var(--sound-level) * -6px))}
+#avatar25[data-expression="speaking"] .avatar25-float {animation-duration:4.2s}
+#avatar25[data-expression="speaking"] .avatar25-mouth-open {transition:ry 55ms ease, rx 55ms ease}
+@keyframes avatar25-float {0%,100%{transform:translateY(0px)}50%{transform:translateY(-9px)}}
+@keyframes avatar25-orbit {to{transform:rotate(360deg)}}
+@keyframes avatar25-blink {
+  0%,42%,45%,67%,69%,100%{opacity:0;transform:scaleY(1)}
+  43.1%,68.1%{opacity:1;transform:scaleY(21)}
+  44%,68.8%{opacity:0;transform:scaleY(1)}
+}
+@keyframes avatar25-attention{0%,100%{transform:translateY(0px)}51%{transform:translateY(2px)}}
+/* Make the hero illustration the primary element rather than another tiny sticker. */
+.stage-card{min-height:730px}
+.stage-persona{min-height:460px}
+.avatar-option.selected{border-color:#54c7ac;box-shadow:0 0 0 2px #b5f0db,0 10px 26px #48a38d20}
+.immersive-kiosk .stage-persona #avatar25{inset:-4% -6%;z-index:3}
+.immersive-kiosk #avatar25 .rainy-2d5-portrait{
+  width:100%;max-width:1100px;max-height:none;
+  transform:scale(1.38) translateY(2%);
+  filter:drop-shadow(0 22px 38px rgba(17,98,102,.19));
+}
+.immersive-kiosk .stage-persona.avatar-25d-ready #voiceHalo{width:min(73vw,82vh);opacity:.34}
+.immersive-kiosk .stage-persona .avatar-glow{opacity:.14}
+.immersive-kiosk .stage-caption{position:relative;z-index:6}
+@media(min-width:1440px) and (min-height:850px){
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.49) translateY(3%)}
+}
+@media(max-width:1000px){
+  .stage-persona{min-height:390px}
+  #avatar25 .rainy-2d5-portrait{transform:scale(1.12) translateY(2%)}
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.24) translateY(1%)}
+}
+@media(max-width:680px){
+  .stage-card{min-height:620px}
+  .stage-persona{min-height:335px}
+  #avatar25 .rainy-2d5-portrait{transform:scale(1.1)}
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.17) translateY(2%)}
+}
+@media(max-height:690px){
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.08)}
+}
+@media(prefers-reduced-motion:reduce) {
+  #avatar25 *, #avatar25 .avatar25-float,
+  #avatar25 .avatar25-orbit, #avatar25 .avatar25-eyelid,
+  #avatar25 .avatar25-eye {animation:none!important;transition:none!important}
+  #avatar25 .avatar25-head, #avatar25 .avatar25-gaze{transform:none!important}
+  #avatar25 .rainy-2d5-portrait{filter:none}
+}
+
+/* Head-only kiosk treatment. No shoulders, chest, body or neck in any variant. */
+#avatar25 .avatar25-body,
+#avatar25 .avatar25-torso,
+#avatar25 .avatar25-shoulder,
+.avatar-thumbnail .thumb-body,
+.stage-persona:not(.avatar-25d-ready) #avatarMount .avatar-body,
+.stage-persona:not(.avatar-25d-ready) #avatarMount .avatar-neck{display:none!important}
+.stage-persona:not(.avatar-25d-ready) #avatarMount .avatar-face{transform:translateY(52px) scale(1.18)}
+.stage-persona:not(.avatar-25d-ready) #avatarMount{height:265px}
+#avatar25 .rainy-2d5-portrait{
+  transform:scale(1.20) translateY(1%);
+  max-width:850px;
+  max-height:790px;
+}
+.immersive-kiosk #avatar25 .rainy-2d5-portrait{
+  max-width:1250px;
+  transform:scale(1.43) translateY(1.3%);
+}
+.avatar25-fox-ears,
+.avatar25-bunny-ears,
+.avatar25-human-hair,
+.avatar25-hologram-halo,
+.avatar25-antenna{pointer-events:none}
+.avatar-thumbnail .thumb-head{top:11px;left:7px;transform:scale(1.11)}
+.avatar-thumbnail .thumb-ears{transform:translateY(-2px)}
+@media(max-width:680px){
+  #avatar25 .rainy-2d5-portrait{transform:scale(1.13)}
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.18)}
+}
+@media(max-height:690px){
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.08)}
+}
+@media(prefers-reduced-motion:reduce){
+  #avatar25 .rainy-2d5-portrait{transform:scale(1.1)!important}
+}

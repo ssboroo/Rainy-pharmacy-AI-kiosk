@@ -14,8 +14,7 @@
     "check": "npm run test && npm run build"
   },
   "dependencies": {
-    "@elevenlabs/client": "^1.28.0",
-    "three": "^0.180.0"
+    "@elevenlabs/client": "^1.28.0"
   },
   "devDependencies": {
     "vite": "^7.1.0"

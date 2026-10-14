@@ -1,14 +1,15 @@
 import {Conversation} from '@elevenlabs/client';
 import './style.css';
 import './kiosk.css';
-import './avatar-3d.css';
+import './avatar-25d.css';
+import {IllustratedAvatar25D} from './avatar-25d.js';
 import {WakeGreetingListener} from './kiosk-voice.js';
 import {toneForState} from './kiosk-policy.js';
 const $=id=>document.getElementById(id);
 let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=null,resetTimer=null;
 let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
 let lastWakeAt=0;
-let avatar3d=null;
+let avatar25=null;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -42,7 +43,7 @@ function addMessage(role,text){
 }
 function setStatus(state){
   currentVoiceState=state;
-  avatar3d?.setState(state);
+  avatar25?.setState(state);
   const mount=$('avatarMount');
   mount.classList.toggle('speaking',state==='speaking');
   mount.classList.toggle('listening',state==='listening'||state==='wake');
@@ -55,7 +56,7 @@ function setStatus(state){
 function selectAvatar(id){
   const data=config.avatars.find(a=>a.id===id);if(!data)return;
   selected=id;
-  avatar3d?.setAvatar(id);
+  avatar25?.setAvatar(id);
   $('avatarMount').className='portrait '+id;
   setStatus(currentVoiceState);
   $('assistantTitle').textContent=id===config.defaultAvatar&&config.assistantName?config.assistantName:data.name;
@@ -71,7 +72,7 @@ function renderAvatars(){
     button.className='avatar-option';
     button.dataset.avatar=a.id;
     const visual=document.createElement('span');visual.className='avatar-thumbnail '+a.id;
-    visual.innerHTML='<i class="thumb-ears"></i><i class="thumb-head"><b class="thumb-eye eye-one"></b><b class="thumb-eye eye-two"></b><b class="thumb-mouth"></b></i><i class="thumb-body"></i>';
+    visual.innerHTML='<i class="thumb-ears"></i><i class="thumb-head"><b class="thumb-eye eye-one"></b><b class="thumb-eye eye-two"></b><b class="thumb-mouth"></b></i>';
     const text=document.createElement('span');text.className='avatar-text';
     const name=document.createElement('strong');name.textContent=a.name;
     const style=document.createElement('small');style.textContent=a.style;
@@ -94,7 +95,7 @@ async function ask(question){
 function setWave(level) {
   const next=Math.max(0,Math.min(1,Number(level)||0));
   lastVisualLevel=lastVisualLevel*.55+next*.45;
-  avatar3d?.setLevel(lastVisualLevel);
+  avatar25?.setLevel(lastVisualLevel);
   const strength=lastVisualLevel;
   $('avatarMount').style.setProperty('--mouth-level',strength.toFixed(3));
   $('avatarMount').style.setProperty('--face-lift',(strength*4).toFixed(2)+'px');
@@ -372,7 +373,7 @@ async function handoff(){
 async function toggleKioskMode(){
   const next=!document.body.classList.contains('immersive-kiosk');
   document.body.classList.toggle('immersive-kiosk',next);
-  requestAnimationFrame(()=>avatar3d?.resize());
+  requestAnimationFrame(()=>avatar25?.resize());
   if(next){
     localStorage.setItem(KIOSK_STORAGE_KEY,'1');
     try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();}
@@ -383,28 +384,22 @@ async function toggleKioskMode(){
   }
 }
 
-async function loadPremium3D(){
-  if(!window.WebGL2RenderingContext){
-    document.body.dataset.avatarEngine='css-fallback';return;
-  }
-  const area=document.querySelector('.stage-persona');
+async function loadPremium2D5(){
+  const stage=document.querySelector('.stage-persona');
   const layer=document.createElement('div');
-  layer.id='avatar3d';
-  area.append(layer);
+  layer.id='avatar25';
+  stage.append(layer);
   try{
-    const {PharmacyAvatar3D}=await import('./avatar-3d.js');
-    avatar3d=new PharmacyAvatar3D(layer,()=>{
-      area.classList.remove('avatar-3d-ready');
-      document.body.dataset.avatarEngine='css-fallback';
-      toast('GPU 3D горим түр зогслоо. 2D дүрээр үргэлжлүүлнэ.');
-    });
-    avatar3d.setAvatar(selected);
-    avatar3d.setState(currentVoiceState);
-    area.classList.add('avatar-3d-ready');
-    document.body.dataset.avatarEngine='threejs';
+    avatar25=new IllustratedAvatar25D(layer);
+    avatar25.setAvatar(selected);
+    avatar25.setState(currentVoiceState);
+    stage.classList.add('avatar-25d-ready');
+    document.body.dataset.avatarEngine='premium-25d';
   }catch(error){
-    console.error('Optional 3D avatar initialization failed:',error);
-    area.classList.remove('avatar-3d-ready');
+    console.warn('2.5D fallback:',error);
+    avatar25?.dispose();
+    avatar25=null;
+    stage.classList.remove('avatar-25d-ready');
     document.body.dataset.avatarEngine='css-fallback';
     layer.remove();
   }
@@ -445,7 +440,7 @@ async function init(){
     $('demoBanner').hidden=!config.demoMode;
     $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent холбогдсон · Микрофоноо асаана уу':'Browser дуут танилт / бичгээр асуулт · Agent хараахан холбогдоогүй';
     renderAvatars();
-    await loadPremium3D();
+    await loadPremium2D5();
     makeWakeListener();
     if(localStorage.getItem(KIOSK_STORAGE_KEY)==='1')document.body.classList.add('immersive-kiosk');
     await restoreMicIfGranted();
@@ -456,6 +451,6 @@ async function init(){
   }
 }
 init();
-window.addEventListener('beforeunload',()=>{avatar3d?.dispose();wakeListener?.disable();cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
+window.addEventListener('beforeunload',()=>{avatar25?.dispose();wakeListener?.disable();cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
 
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
