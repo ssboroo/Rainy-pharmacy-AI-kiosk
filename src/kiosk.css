@@ -37,7 +37,7 @@ body.immersive-kiosk{overflow:hidden}
 .immersive-kiosk .stage-caption{z-index:4}
 .immersive-kiosk .stage-caption .name-row h2{font-size:clamp(28px,3.7vw,56px)}
 .immersive-kiosk .stage-controls{padding-top:1vh}
-.immersive-kiosk .stage-controls #micBtn{display:none}
+.immersive-kiosk .stage-controls #micBtn{display:flex!important;max-width:310px;min-height:48px;margin:7px auto 0;align-items:center;justify-content:center;gap:9px;box-shadow:0 10px 24px #2b8c7450}
 .immersive-kiosk .stage-controls .voice-hint{display:none}
 .immersive-kiosk .stage-persona .voice-halo{width:min(55vw,65vh);top:51%}
 .immersive-kiosk .portrait{animation:immersiveFloat 5.5s ease-in-out infinite!important;transform-origin:center 48%}

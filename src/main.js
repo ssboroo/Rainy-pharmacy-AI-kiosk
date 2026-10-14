@@ -9,7 +9,7 @@ const $=id=>document.getElementById(id);
 let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=null,resetTimer=null;
 let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
 let lastWakeAt=0;
-let avatar25=null;
+let avatar25=null,localSessionWanted=false;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -88,7 +88,7 @@ async function ask(question){
   try{
     const answer=await api('/ask',{method:'POST',body:JSON.stringify({question:q})});
     addMessage('assistant',answer.reply);
-    if(recognition&&'speechSynthesis' in window){const active=recognition;recognition=null;active.onend=null;try{active.abort();}catch{};await speakBrowser(answer.reply);if(wakeListener?.enabled&&currentVoiceState==='listening')startLocalVoiceSession(false);}
+    if(recognition){const active=recognition;recognition=null;active.onend=null;active.onerror=null;try{active.abort();}catch{};const audible=await speakBrowser(answer.reply);if(!audible)toast('Энэ төхөөрөмжийн Монгол хэлний TTS дэмжлэг хязгаарлагдмал. ElevenLabs Voice Agent-г админ дээр шалгана уу.');if(localSessionWanted&&!conversation)await startLocalVoiceSession(false);}
     if(answer.kind==='emergency')toast('ЯАРАЛТАЙ: Эм зүйчийг дуудаж, шаардлагатай бол 103 руу залгаарай.');
   }catch(e){toast(e.message);}
 }
@@ -138,14 +138,18 @@ async function speakBrowser(text){
   if(!('speechSynthesis' in window))return;
   const voices=speechSynthesis.getVoices?.()||[];
   const voice=voices.find(v=>v.lang?.toLowerCase().startsWith('mn'));
-  // Never synthesize Mongolian with an arbitrary voice that cannot pronounce it.
-  if(!voice)return;
-  await new Promise(resolve=>{
+  if(!voice)console.info('Mongolian browser voice is not installed; default synthesized voice may pronounce Mongolian poorly.');
+  return await new Promise(resolve=>{
     const utterance=new SpeechSynthesisUtterance(text);
-    utterance.voice=voice;utterance.lang='mn-MN';utterance.rate=.92;
-    utterance.onend=resolve;utterance.onerror=resolve;
-    speechSynthesis.cancel();speechSynthesis.speak(utterance);
-    setTimeout(resolve,9000);
+    if(voice)utterance.voice=voice;
+    utterance.lang='mn-MN';utterance.rate=.93;utterance.volume=1;
+    let finished=false;
+    const finish=ok=>{if(finished)return;finished=true;clearTimeout(limit);resolve(ok);};
+    utterance.onstart=()=>{setStatus('speaking');startVoiceVisuals();};
+    utterance.onend=()=>finish(true);
+    utterance.onerror=()=>finish(false);
+    const limit=setTimeout(()=>{try{speechSynthesis.cancel();}catch{}finish(false);},15000);
+    try{speechSynthesis.cancel();speechSynthesis.speak(utterance);}catch{finish(false);}
   });
 }
 function makeWakeListener(){
@@ -201,6 +205,8 @@ async function restoreMicIfGranted(){
   updateMicrophoneUI();
 }
 async function stopVoice(resumeWake=true){
+  localSessionWanted=false;
+  try{window.speechSynthesis?.cancel();}catch{}
   if(recognition){const old=recognition;recognition=null;old.onend=null;old.onerror=null;old.onresult=null;try{old.abort();}catch{}}
   if(conversation){const old=conversation;conversation=null;try{await old.endSession();}catch{}}
   voiceStarting=false;
@@ -231,10 +237,19 @@ async function startLocalVoiceSession(fromWake){
     }
   };
   session.onerror=event=>{
-    if(['not-allowed','service-not-allowed','audio-capture'].includes(event.error||''))toast('Микрофоны алдаа: '+event.error);
+    if(['not-allowed','service-not-allowed','audio-capture'].includes(event.error||'')){
+      localSessionWanted=false;
+      toast('Микрофоны алдаа: '+event.error);
+    }
   };
-  session.onend=()=>{if(recognition===session){recognition=null;stopVoice();}};
-  try{session.start();$('micBtnText').textContent='Яриаг зогсоох';setStatus('listening');}
+  session.onend=()=>{
+    if(recognition!==session)return;
+    recognition=null;
+    if(localSessionWanted&&!conversation){
+      setTimeout(()=>{if(localSessionWanted&&!recognition&&!conversation&&!voiceStarting)startLocalVoiceSession(false);},900);
+    }else stopVoice();
+  };
+  try{session.start();localSessionWanted=true;$('micBtnText').textContent='Яриаг зогсоох';setStatus('listening');}
   catch(e){recognition=null;toast(e.message);await stopVoice();}
 }
 async function startVoice(fromWake=false){
@@ -243,6 +258,7 @@ async function startVoice(fromWake=false){
   if(conversation||recognition){if(!fromWake)await stopVoice();return;}
   wakeListener?.pause();
   voiceStarting=true;
+  startVoiceVisuals();
   $('micBtnText').textContent='Яриаг зогсоох';
   if(config?.voiceReady){
     try{
@@ -251,6 +267,7 @@ async function startVoice(fromWake=false){
       // Audio travels only to a clinician-approved ElevenLabs Agent.
       const live=await Conversation.startSession({
         signedUrl,
+        connectionType:'websocket',
         onConnect:()=>setStatus('listening'),
         onDisconnect:()=>{
           conversation=null;
@@ -276,7 +293,7 @@ async function startVoice(fromWake=false){
     }
   }
   voiceStarting=false;
-  toast('AI Agent API хараахан холбогдоогүй. Browser-ийн аюулгүй асуулт/хариултын горим ажиллана.');
+  toast(config?.voiceConfigured?'Agent ID ба API key байгаа ч эм зүйчийн баталгаажуулалт дутуу. Browser-ийн ярианы горим ажиллана.':'Voice Agent-ийн тохиргоо дутуу. Browser-ийн ярианы горимыг туршиж байна.');
   await startLocalVoiceSession(fromWake);
 }
 function closeModal(){
@@ -290,9 +307,28 @@ function modal(title){
 function element(tag,cls,text){
   const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;
 }
-async function catalogModal(){
+function showMedicineDetails(item,query=''){
+  const body=modal(item.name);
+  const note=element('p','modal-copy',item.verified?'Энэ бүтээгдэхүүний бүртгэлийг эмийн сан баталгаажуулсан.':'ЖИШЭЭ МЭДЭЭЛЭЛ · Эмийн сангийн бодит нөөц, үнэ, тун, хэрэглэх заавар биш.');
+  note.classList.add('medicine-alert');
+  body.append(note);
+  for(const [label,value] of [['Ангилал',item.category],['Хэлбэр',item.form],['Ерөнхий мэдээлэл',item.description],['Анхаарах зүйлс',item.warnings],['Хадгалалт',item.storage]]){
+    if(!value)continue;
+    const block=element('section','medicine-detail');
+    block.append(element('h3',null,label),element('p',null,value));
+    body.append(block);
+  }
+  body.append(element('p','modal-copy','Энэ мэдээлэл нь онош, жор, хэрэглэх тунгийн зөвлөгөө биш. Эм зүйчээс баталгаажуулна уу.'));
+  const row=element('div','medicine-detail-actions');
+  const back=element('button','medicine-back','← Жагсаалт руу');
+  back.onclick=()=>catalogModal(query);
+  const staff=element('button','medicine-staff','Эм зүйч дуудах');
+  staff.onclick=()=>{closeModal();handoff();};
+  row.append(back,staff);body.append(row);
+}
+async function catalogModal(initialQuery=''){
   const body=modal('Эмийн мэдээлэл хайх');
-  const prompt=element('p','modal-copy','Бүтээгдэхүүний нэрээр хайна уу. Баталгаагүй demo бүртгэл нь бодит үнэ, үлдэгдлийг харуулахгүй.');
+  const prompt=element('p','modal-copy','30 төрлийн жишээ эмийн мэдээлэл. Бодит үнэ, үлдэгдэл, заавар баталгаажаагүй. Эм зүйчээс лавлана уу.');
   const input=element('input','search-field');input.placeholder='Жишээ: Парацетамол';input.setAttribute('aria-label','Эмийн нэр хайх');
   const list=element('div','search-results');body.append(prompt,input,list);
   let serial=0;
@@ -307,12 +343,13 @@ async function catalogModal(){
         const card=element('button','result-card');
         const info=element('span','result-info');
         const title=element('strong',null,item.name);
-        const description=element('small',null,item.verified?('Баталгаажуулсан бүртгэл · '+(item.shelf||'Тавиур тодорхойгүй')):'Жишээ бүртгэл · Бодит мэдээлэл биш');
+        const description=element('small',null,item.verified?('Баталгаажуулсан бүртгэл · '+(item.shelf||'Тавиур тодорхойгүй')):(item.category||'Жишээ бүртгэл')+' · Бодит үнэ/нөөц биш');
         info.append(title,description);card.append(element('span','result-icon','✚'),info,element('span','', '↗'));
-        card.onclick=()=>{closeModal();ask(item.name+' үнэ');};list.append(card);
+        card.onclick=()=>showMedicineDetails(item,input.value);list.append(card);
       }
     }catch(e){toast(e.message);}
   };
+  input.value=typeof initialQuery==='string'?initialQuery:'';
   input.oninput=render;render();input.focus();
 }
 async function imageData(file){
@@ -438,11 +475,14 @@ async function init(){
     $('heroDescription').textContent='Эмийн мэдээлэл, үнэ, байршлын талаар асуугаарай.';
     $('greetingBubble').textContent=config.greeting;
     $('demoBanner').hidden=!config.demoMode;
-    $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent холбогдсон · Микрофоноо асаана уу':'Browser дуут танилт / бичгээр асуулт · Agent хараахан холбогдоогүй';
+    $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent идэвхтэй · Микрофоноо асаана уу':config.voiceConfigured?'Agent ID / API key тохируулсан. Эмнэлзүйн зөвшөөрөл дутуу — админаас шалгана уу.':'Browser дуут танилт / бичгээр асуулт · ElevenLabs Agent холболт дутуу';
     renderAvatars();
     await loadPremium2D5();
     makeWakeListener();
-    if(localStorage.getItem(KIOSK_STORAGE_KEY)==='1')document.body.classList.add('immersive-kiosk');
+    if(localStorage.getItem(KIOSK_STORAGE_KEY)==='1'){
+      document.body.classList.add('immersive-kiosk');
+      requestAnimationFrame(()=>avatar25?.resize());
+    }
     await restoreMicIfGranted();
     activity();
   }catch(e){

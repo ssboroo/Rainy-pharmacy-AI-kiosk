@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readFile,writeFile,rename,mkdir,stat} from 'node:fs/promises';
 import {timingSafeEqual} from 'node:crypto';
-import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed} from './core.mjs';
+import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..'),dist=path.join(root,'dist');
@@ -15,7 +15,14 @@ let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
 async function loadData(){
   await mkdir(dataDir,{recursive:true});
   try{settings=validateSettings(JSON.parse(await readFile(settingsPath,'utf8')),settings);}catch(e){if(e.code!=='ENOENT')console.warn('Settings not loaded:',e.message);}
-  try{catalog=validateCatalog(JSON.parse(await readFile(catalogPath,'utf8')));}catch(e){if(e.code!=='ENOENT')console.warn('Catalog not loaded:',e.message);}
+  try{
+    const stored=validateCatalog(JSON.parse(await readFile(catalogPath,'utf8')));
+    catalog=mergeLegacyDemoCatalog(stored);
+    if(catalog!==stored){
+      await writeFile(catalogPath,JSON.stringify(catalog,null,2));
+      console.log('Expanded three legacy demo items into 30 unverified examples.');
+    }
+  }catch(e){if(e.code!=='ENOENT')console.warn('Catalog not loaded:',e.message);}
 }
 let saves=Promise.resolve();
 function persist(filename,value){
@@ -71,6 +78,24 @@ async function external(url,opts){
   return response.json();
 }
 const agentId=()=>settings.agentId||process.env.ELEVENLABS_AGENT_ID||'';
+function agentDiagnostics(){
+  const status=voiceConnectionStatus(process.env,agentId());
+  return {...status,agentIdMasked:status.agentConfigured?(agentId().slice(0,6)+'••••'+agentId().slice(-4)):'',message:!status.agentConfigured?'ElevenLabs Agent ID дутуу.':!status.keyConfigured?'Railway дээр ELEVENLABS_API_KEY дутуу.':!status.clinicalApproved?'Эмийн аюулгүй байдлыг эм зүйч баталгаажуулсны дараа VOICE_AGENT_CLINICAL_APPROVED=true тохируулна.':'Voice Agent яриа эхлүүлэхэд бэлэн.'};
+}
+async function checkAgentConnection(){
+  const status=agentDiagnostics();
+  if(!status.agentConfigured||!status.keyConfigured)return {...status,connected:false,connectionMessage:'Agent ID болон API key-г эхлээд тохируулна.'};
+  try{
+    const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId());
+    const result=await external(url,{headers:{'xi-api-key':process.env.ELEVENLABS_API_KEY}});
+    return {...status,connected:typeof result.signed_url==='string',connectionMessage:typeof result.signed_url==='string'?'ElevenLabs API key болон Agent ID холболт зөв. Нийтийн киоск дээр ашиглахын өмнө эм зүйчийн зөвшөөрөл шаардлагатай.':'ElevenLabs signed URL ирсэнгүй.'};
+  }catch(error){
+    const match=String(error.message).match(/\((\d{3})\)/);
+    const code=match?Number(match[1]):null;
+    const reason=code===401?'ElevenLabs API key буруу эсвэл хугацаа дууссан.':code===403?'ElevenLabs key-д Agent ашиглах эрх хүрэлцэхгүй.':code===404||code===422?'Agent ID буруу эсвэл Agent олдсонгүй.':code===429?'ElevenLabs хүсэлтийн хязгаар хүрсэн.':'ElevenLabs-тай холбогдож чадсангүй.';
+    return {...status,connected:false,providerStatus:code,connectionMessage:reason};
+  }
+}
 async function signedUrl(){
   if(!voiceAllowed(process.env,agentId()))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
   const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId());
@@ -128,7 +153,7 @@ async function handle(req,res){
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
       pharmacyName:settings.pharmacyName,assistantName:settings.assistantName,greeting:settings.greeting,defaultAvatar:settings.defaultAvatar,accent:settings.accent,locationName:settings.locationName,
-      avatars:AVATARS,voiceReady:voiceAllowed(process.env,agentId()),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
+      avatars:AVATARS,voiceReady:voiceAllowed(process.env,agentId()),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId()),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:catalog.some(v=>!v.verified)
     });
     if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',catalog),demoMode:catalog.some(v=>!v.verified)});
@@ -147,6 +172,8 @@ async function handle(req,res){
     if(route.startsWith('/api/admin/')){
       if(!process.env.ADMIN_TOKEN||process.env.ADMIN_TOKEN.length<24)return respond(res,503,{error:'ADMIN_TOKEN тохируулаагүй.'});
       if(!isAdmin(req))return respond(res,401,{error:'Зөвшөөрөлгүй.'});
+      if(req.method==='GET'&&route==='/api/admin/voice-status')return respond(res,200,agentDiagnostics());
+      if(req.method==='POST'&&route==='/api/admin/voice-test')return respond(res,200,await checkAgentConnection());
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings});
       if(req.method==='GET'&&route==='/api/admin/catalog')return respond(res,200,{items:catalog});
       if(req.method==='PUT'&&route==='/api/admin/settings'){
