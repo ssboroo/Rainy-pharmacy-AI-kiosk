@@ -1,0 +1,11 @@
+/* GPU-rendered 3D takes precedence, retains an accessible static CSS fallback. */
+.stage-persona{isolation:isolate}
+#avatar3d{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+#avatar3d canvas.pharmacy-3d-canvas{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 16px 30px #2c857a26)}
+.stage-persona.avatar-3d-ready #avatarMount{visibility:hidden}
+.stage-persona.avatar-3d-ready .avatar-glow{opacity:.36}
+.stage-persona.avatar-3d-ready #avatar3d{opacity:1;transition:opacity .3s ease}
+.immersive-kiosk .stage-persona #avatar3d{inset:0;z-index:3}
+.immersive-kiosk .stage-persona.avatar-3d-ready .voice-halo{width:min(65vw,74vh);opacity:.34}
+.immersive-kiosk .stage-caption{position:relative;z-index:5}
+@media (prefers-reduced-motion:reduce){#avatar3d canvas{filter:none}}

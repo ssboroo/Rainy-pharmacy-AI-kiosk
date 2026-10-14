@@ -100,3 +100,9 @@ Before pharmacy rollout: verified Mongolian medicines catalog, pharmacist approv
 7. Дууны waveform ба нүүрний хөдөлгөөн нь ElevenLabs SDK-ийн live audio volume дээр суурилсан **energy lip sync** болохоос viseme / 3D facial rig биш. Дараагийн шатанд лицензтэй GLB/ARKit morph targets ашиглаж болно.
 
 **Нууцлал:** Ойр байгаа хүмүүсийн яриа browser-ийн Speech Recognition provider-д дамжиж болох тул үйлчлүүлэгчид ойлгомжтой анхааруулга, байгууллагын зөвшөөрлийн журам шаардлагатай. Browser permission нь төхөөрөмж, site origin-той холбоотой бөгөөд OS-ийн бодлогоос хамаарна.
+
+## Premium 3D avatar engine
+
+`src/avatar-3d.js` uses Three.js WebGL2 + physically based materials to render **five distinct procedural 3D characters** (robots, a stylized human avatar and hologram). Facial rig reacts to live ElevenLabs input/output signal level (energy lip sync, **not phoneme-accurate** visemes). Eye blinking, brows, head and idle breathing are stateful. Idle and fullscreen are responsive via ResizeObserver, capped devicePixelRatio for kiosk hardware. Failed/lost GPU context falls back to the existing 2D CSS avatar. Actual photoreal human/GLB avatar models and precise viseme retargeting are separate work, not shipped in this version.
+
+**Agent ID:** admin login at `/admin.html` → *ElevenLabs Agent ID* → Save. Permanent settings require Railway volume mounted at `/app/storage` and `DATA_DIR=/app/storage`. Alternatively set `ELEVENLABS_AGENT_ID` in Railway Variables (server fallback). Set secret `ELEVENLABS_API_KEY` only in Railway Variables; it is never included in frontend output. Voice remains disabled until a licensed pharmacist approves the agent knowledge and policies and explicitly enables `VOICE_AGENT_CLINICAL_APPROVED=true`. No clinical advice by default.
