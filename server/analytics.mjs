@@ -61,9 +61,10 @@ export function metricForAnswer(answer){
   }
 }
 export function analyticsCSV(report){
-  const columns=['date',...ANALYTICS_METRICS];
+  const metricColumns=['questionsAsked','verifiedCatalogAnswers',...ANALYTICS_METRICS.filter(m=>!['questionsAsked','verifiedCatalogAnswers'].includes(m))];
+  const columns=['date',...metricColumns];
   return '\ufeff'+columns.join(',')+'\n'+report.days.map(day=>
-    [day.date,...ANALYTICS_METRICS.map(key=>day[key])].join(',')
+    [day.date,...metricColumns.map(key=>day[key])].join(',')
   ).join('\n')+'\n';
 }
 
