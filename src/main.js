@@ -1,7 +1,14 @@
 import {Conversation} from '@elevenlabs/client';
 import './style.css';
+import './kiosk.css';
+import {WakeGreetingListener} from './kiosk-voice.js';
+import {toneForState} from './kiosk-policy.js';
 const $=id=>document.getElementById(id);
 let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=null,resetTimer=null;
+let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
+let lastWakeAt=0;
+const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
+const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
 async function api(path,opts={}){
   const response=await fetch('/api'+path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
@@ -32,14 +39,21 @@ function addMessage(role,text){
   activity();
 }
 function setStatus(state){
-  $('avatarMount').classList.toggle('speaking',state==='speaking');
-  $('waveform').classList.toggle('active',state==='speaking'||state==='listening');
-  $('statusLabel').textContent=state==='speaking'?'AI туслах ярьж байна':state==='listening'?'Таныг сонсож байна':state==='connecting'?'Холбогдож байна':'Танд туслахад бэлэн';
+  currentVoiceState=state;
+  const mount=$('avatarMount');
+  mount.classList.toggle('speaking',state==='speaking');
+  mount.classList.toggle('listening',state==='listening'||state==='wake');
+  mount.classList.toggle('thinking',state==='connecting');
+  mount.dataset.expression=toneForState(state);
+  $('waveform').classList.toggle('active',state==='speaking'||state==='listening'||state==='wake');
+  $('statusLabel').textContent=state==='speaking'?'AI туслах ярьж байна':state==='listening'?'Таныг сонсож байна':state==='wake'?'«Сайн байна уу» гэж хэлээрэй':state==='connecting'?'Холбогдож байна':'Танд туслахад бэлэн';
+  $('meterLabel').textContent=state==='speaking'?'AI ярьж байна':state==='listening'?'Сонсож байна':state==='wake'?'Мэндчилгээ хүлээж байна':'Танд туслахад бэлэн';
 }
 function selectAvatar(id){
   const data=config.avatars.find(a=>a.id===id);if(!data)return;
   selected=id;
   $('avatarMount').className='portrait '+id;
+  setStatus(currentVoiceState);
   $('assistantTitle').textContent=id===config.defaultAvatar&&config.assistantName?config.assistantName:data.name;
   $('personaSubtitle').textContent=byId[id];
   document.documentElement.style.setProperty('--avatar-accent',data.color);
@@ -69,43 +83,195 @@ async function ask(question){
   try{
     const answer=await api('/ask',{method:'POST',body:JSON.stringify({question:q})});
     addMessage('assistant',answer.reply);
+    if(recognition&&'speechSynthesis' in window){const active=recognition;recognition=null;active.onend=null;try{active.abort();}catch{};await speakBrowser(answer.reply);if(wakeListener?.enabled&&currentVoiceState==='listening')startLocalVoiceSession(false);}
     if(answer.kind==='emergency')toast('ЯАРАЛТАЙ: Эм зүйчийг дуудаж, шаардлагатай бол 103 руу залгаарай.');
   }catch(e){toast(e.message);}
 }
-async function stopVoice(){
-  if(recognition){try{recognition.stop();}catch{}recognition=null;}
-  if(conversation){const old=conversation;conversation=null;try{await old.endSession();}catch{}}
-  $('micBtnText').textContent='Ярилцлага эхлүүлэх';setStatus('ready');
+function setWave(level) {
+  const next=Math.max(0,Math.min(1,Number(level)||0));
+  lastVisualLevel=lastVisualLevel*.55+next*.45;
+  const strength=lastVisualLevel;
+  $('avatarMount').style.setProperty('--mouth-level',strength.toFixed(3));
+  $('avatarMount').style.setProperty('--face-lift',(strength*4).toFixed(2)+'px');
+  const bars=$('waveform').querySelectorAll('i');
+  bars.forEach((bar,index)=>{
+    const phase=Math.abs(Math.sin(index*1.21+performance.now()*.003));
+    bar.style.height=(5+Math.round((strength*48+2)*(.22+phase*.78)))+'px';
+    bar.style.opacity=(.45+strength*.55).toFixed(2);
+  });
+  $('voiceHalo').style.opacity=String(.38+strength*.59);
+  $('voiceHalo').style.transform='translate(-50%,-50%) scale('+(1+strength*.27).toFixed(3)+')';
 }
-async function startVoice(){
+function startVoiceVisuals(){
+  if(visualFrame)return;
+  const render=async()=>{
+    visualFrame=requestAnimationFrame(render);
+    if(!conversation||typeof conversation.getOutputVolume!=='function'){
+      setWave(currentVoiceState==='wake'?.06:0);
+      return;
+    }
+    try{
+      const output=await Promise.resolve(conversation.getOutputVolume());
+      const input=await Promise.resolve(conversation.getInputVolume());
+      if(conversation)setWave(currentVoiceState==='speaking'?output:input*.5);
+    }catch{setWave(0);}
+  };
+  visualFrame=requestAnimationFrame(render);
+}
+function updateMicrophoneUI(){
+  const enabled=!!wakeListener?.enabled;
+  $('setupMicrophoneBtn').textContent=enabled?'● Микрофон идэвхтэй':'🎙 Микрофон зөвшөөрөх';
+  $('setupMicrophoneBtn').classList.toggle('enabled',enabled);
+  $('micPrivacy').textContent=enabled?'Мэндчилгээ сонсож байна · Дуу таних үйлчилгээ интернэт ашиглаж болно':'Эхлээд ажилтан микрофоны зөвшөөрлийг идэвхжүүлнэ';
+}
+function onWakeState(state){
+  if(state==='listening'||state==='retrying'){if(!conversation&&!recognition&&!voiceStarting)setStatus('wake');}
+  updateMicrophoneUI();
+}
+async function speakBrowser(text){
+  if(!('speechSynthesis' in window))return;
+  const voices=speechSynthesis.getVoices?.()||[];
+  const voice=voices.find(v=>v.lang?.toLowerCase().startsWith('mn'));
+  // Never synthesize Mongolian with an arbitrary voice that cannot pronounce it.
+  if(!voice)return;
+  await new Promise(resolve=>{
+    const utterance=new SpeechSynthesisUtterance(text);
+    utterance.voice=voice;utterance.lang='mn-MN';utterance.rate=.92;
+    utterance.onend=resolve;utterance.onerror=resolve;
+    speechSynthesis.cancel();speechSynthesis.speak(utterance);
+    setTimeout(resolve,9000);
+  });
+}
+function makeWakeListener(){
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  wakeListener=new WakeGreetingListener({
+    SpeechRecognition,
+    onWake:async()=>{
+      if(voiceStarting||conversation||recognition)return;
+      const now=Date.now();
+      if(now-lastWakeAt<3500){wakeListener.resume(2500);return;}
+      lastWakeAt=now;
+      await startVoice(true);
+    },
+    onState:onWakeState,
+    onFailure:error=>{
+      localStorage.removeItem(WAKE_STORAGE_KEY);
+      updateMicrophoneUI();
+      setStatus('ready');
+      toast(error==='unsupported'?'Энэ browser Монгол хэлний дуу танилт дэмжихгүй. Chrome kiosk эсвэл тусгай wake engine шаардлагатай.':'Микрофоны байнгын сонсох горим тасарлаа. Ажилтан дахин зөвшөөрөл өгнө үү.');
+    }
+  });
+  updateMicrophoneUI();
+}
+async function enableMicFromStaff(){
+  if(wakeListener?.enabled){
+    wakeListener.disable();localStorage.removeItem(WAKE_STORAGE_KEY);
+    await stopVoice(false);updateMicrophoneUI();return;
+  }
+  if(!(window.SpeechRecognition||window.webkitSpeechRecognition)){
+    toast('Автомат мэндчилгээ сонсохын тулд Web Speech Recognition дэмждэг Chrome / Edge шаардлагатай.');return;
+  }
+  if(!navigator.mediaDevices?.getUserMedia){
+    toast('HTTPS эсвэл localhost дээр л микрофон зөвшөөрөх боломжтой.');return;
+  }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    stream.getTracks().forEach(track=>track.stop());
+    localStorage.setItem(WAKE_STORAGE_KEY,'1');
+    wakeListener.enable();
+    startVoiceVisuals();
+    updateMicrophoneUI();
+    toast('Бэлэн! Одоо «Сайн байна уу?» гэж хэлээд туслахыг ажиллуулна.');
+  }catch(error){toast('Микрофон зөвшөөрөл олгогдсонгүй: '+error.message);}
+}
+async function restoreMicIfGranted(){
+  if(localStorage.getItem(WAKE_STORAGE_KEY)!=='1')return;
+  try{
+    if(!navigator.permissions?.query)return;
+    const permission=await navigator.permissions.query({name:'microphone'});
+    if(permission.state==='granted'){wakeListener.enable();startVoiceVisuals();}
+    else localStorage.removeItem(WAKE_STORAGE_KEY);
+  }catch{ /* No Permissions API support: staff must re-enable from UI. */ }
+  updateMicrophoneUI();
+}
+async function stopVoice(resumeWake=true){
+  if(recognition){const old=recognition;recognition=null;old.onend=null;old.onerror=null;old.onresult=null;try{old.abort();}catch{}}
+  if(conversation){const old=conversation;conversation=null;try{await old.endSession();}catch{}}
+  voiceStarting=false;
+  $('micBtnText').textContent='Ярилцлага эхлүүлэх';
+  setStatus(wakeListener?.enabled&&resumeWake?'wake':'ready');
+  if(resumeWake&&wakeListener?.enabled)wakeListener.resume(1400);
+}
+async function startLocalVoiceSession(fromWake){
+  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    if(fromWake)addMessage('assistant','Сайн байна уу! Асуултаа дэлгэц дээр бичнэ үү.');
+    toast('Дуут танилт дэмжигдээгүй. Асуултаа бичгээр илгээнэ үү.');
+    await stopVoice();return;
+  }
+  if(fromWake){
+    const greeting='Сайн байна уу! Би RAINY эмийн сангийн туслах. Та эмийн нэр, үнэ, байршлын талаар асуугаарай.';
+    addMessage('assistant',greeting);
+    await speakBrowser(greeting);
+  }
+  recognition=new SpeechRecognition();
+  const session=recognition;
+  session.lang='mn-MN';session.continuous=true;session.interimResults=false;
+  session.onresult=async event=>{
+    for(let i=event.resultIndex||0;i<event.results.length;i++){
+      if(!event.results[i].isFinal)continue;
+      const transcript=event.results[i][0]?.transcript||'';
+      if(transcript.trim())await ask(transcript);
+    }
+  };
+  session.onerror=event=>{
+    if(['not-allowed','service-not-allowed','audio-capture'].includes(event.error||''))toast('Микрофоны алдаа: '+event.error);
+  };
+  session.onend=()=>{if(recognition===session){recognition=null;stopVoice();}};
+  try{session.start();$('micBtnText').textContent='Яриаг зогсоох';setStatus('listening');}
+  catch(e){recognition=null;toast(e.message);await stopVoice();}
+}
+async function startVoice(fromWake=false){
   activity();
-  if(conversation||recognition){await stopVoice();return;}
+  if(voiceStarting)return;
+  if(conversation||recognition){if(!fromWake)await stopVoice();return;}
+  wakeListener?.pause();
+  voiceStarting=true;
   $('micBtnText').textContent='Яриаг зогсоох';
-  if(config.voiceReady){
+  if(config?.voiceReady){
     try{
       setStatus('connecting');
       const {signedUrl}=await api('/agent/signed-url');
-      conversation=await Conversation.startSession({
+      // Audio travels only to a clinician-approved ElevenLabs Agent.
+      const live=await Conversation.startSession({
         signedUrl,
         onConnect:()=>setStatus('listening'),
-        onDisconnect:()=>{conversation=null;$('micBtnText').textContent='Ярилцлага эхлүүлэх';setStatus('ready');},
-        onError:(error)=>{console.error('Voice session error',error);toast('Дуут AI холболт тасарлаа. Бичгээр асууж болно.');},
-        onModeChange:(mode)=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
-        onMessage:(message)=>{
+        onDisconnect:()=>{
+          conversation=null;
+          voiceStarting=false;
+          $('micBtnText').textContent='Ярилцлага эхлүүлэх';
+          setStatus(wakeListener?.enabled?'wake':'ready');
+          wakeListener?.resume(1800);
+        },
+        onError:()=>toast('ElevenLabs холболт тасарлаа. Эм зүйчээс лавлах эсвэл бичгээр асууна уу.'),
+        onModeChange:mode=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
+        onMessage:message=>{
           const text=message.message;
-          if(text&&typeof text==='string'&&(message.source==='ai'||message.source==='user'))addMessage(message.source==='ai'?'assistant':'user',text);
+          if(text&&typeof text==='string'&&(message.source==='ai'||message.source==='user'))
+            addMessage(message.source==='ai'?'assistant':'user',text);
         }
       });
+      conversation=live;voiceStarting=false;startVoiceVisuals();
       return;
-    }catch(e){toast('ElevenLabs: '+e.message);await stopVoice();return;}
+    }catch(e){
+      voiceStarting=false;
+      toast('ElevenLabs холболт боломжгүй: '+e.message);
+      await stopVoice();return;
+    }
   }
-  const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRecognition){await stopVoice();toast('Энэ төхөөрөмжийн browser-д дуут танилт байхгүй. ElevenLabs Agent холбох эсвэл бичгээр асууна уу.');return;}
-  recognition=new SpeechRecognition();recognition.lang='mn-MN';recognition.interimResults=false;recognition.continuous=false;
-  recognition.onresult=async e=>{const text=e.results[0][0].transcript;recognition=null;await stopVoice();await ask(text);};
-  recognition.onerror=()=>{recognition=null;stopVoice();toast('Микрофоны зөвшөөрөл болон Монгол хэлний танилтыг шалгана уу.');};
-  recognition.onend=()=>{if(recognition){recognition=null;stopVoice();}};
-  try{recognition.start();setStatus('listening');toast('Browser-ийн Монгол хэлний танилт төхөөрөмжөөс хамаарна.');}catch(e){recognition=null;await stopVoice();toast(e.message);}
+  voiceStarting=false;
+  toast('AI Agent API хараахан холбогдоогүй. Browser-ийн аюулгүй асуулт/хариултын горим ажиллана.');
+  await startLocalVoiceSession(fromWake);
 }
 function closeModal(){
   if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}
@@ -198,16 +364,38 @@ async function handoff(){
   try{const answer=await api('/handoff',{method:'POST',body:'{}'});addMessage('assistant',answer.message);toast(answer.message);}
   catch(e){addMessage('assistant','Ажилтан дуудах систем ажиллахгүй байна. Эмийн сангийн ажилтанд биечлэн хандана уу.');toast(e.message);}
 }
+async function toggleKioskMode(){
+  const next=!document.body.classList.contains('immersive-kiosk');
+  document.body.classList.toggle('immersive-kiosk',next);
+  if(next){
+    localStorage.setItem(KIOSK_STORAGE_KEY,'1');
+    try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();}
+    catch{toast('Дэлгэц томорлоо. Browser fullscreen-д ажилтны зөвшөөрөл хэрэгтэй; Chrome --kiosk горим бүрэн дэлгэцээр тогтвортой ажиллана.');}
+  }else{
+    localStorage.removeItem(KIOSK_STORAGE_KEY);
+    try{if(document.fullscreenElement)await document.exitFullscreen();}catch{}
+  }
+}
+
 function wire(){
   $('homeNav').onclick=()=>{closeModal();window.scrollTo({top:0,behavior:'smooth'});};
   $('catalogNav').onclick=catalogModal;$('medicineAction').onclick=catalogModal;
   $('cameraNav').onclick=cameraModal;$('cameraAction').onclick=cameraModal;
-  $('voiceNav').onclick=startVoice;$('voiceAction').onclick=startVoice;$('micBtn').onclick=startVoice;
+  $('voiceNav').onclick=()=>startVoice();$('voiceAction').onclick=()=>startVoice();$('micBtn').onclick=()=>startVoice();
+  $('setupMicrophoneBtn').onclick=enableMicFromStaff;
+  $('kioskCatalogBtn').onclick=catalogModal;
+  $('kioskCameraBtn').onclick=cameraModal;
+  $('kioskStaffBtn').onclick=handoff;
+  $('kioskBtn').onclick=toggleKioskMode;
+  $('kioskExitBtn').onclick=toggleKioskMode;
   $('staffAction').onclick=handoff;$('handoffSide').onclick=handoff;
   $('askForm').onsubmit=e=>{e.preventDefault();ask($('questionInput').value);};
   $('modalClose').onclick=closeModal;$('overlay').onclick=e=>{if(e.target===$('overlay'))closeModal();};
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
-  $('fullscreenBtn').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(e){toast(e.message);}};
+  $('fullscreenBtn').onclick=toggleKioskMode;
+  document.addEventListener('fullscreenchange',()=>{
+    if(!document.fullscreenElement&&!localStorage.getItem(KIOSK_STORAGE_KEY))document.body.classList.remove('immersive-kiosk');
+  });
   for(const event of ['pointerdown','keydown'])document.addEventListener(event,activity,{passive:true});
   const tick=()=>{$('clock').textContent=new Intl.DateTimeFormat('mn-MN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Ulaanbaatar'}).format(new Date());};
   tick();setInterval(tick,30000);
@@ -225,6 +413,9 @@ async function init(){
     $('demoBanner').hidden=!config.demoMode;
     $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent холбогдсон · Микрофоноо асаана уу':'Browser дуут танилт / бичгээр асуулт · Agent хараахан холбогдоогүй';
     renderAvatars();
+    makeWakeListener();
+    if(localStorage.getItem(KIOSK_STORAGE_KEY)==='1')document.body.classList.add('immersive-kiosk');
+    await restoreMicIfGranted();
     activity();
   }catch(e){
     $('greetingBubble').textContent='Сервертэй холбогдож чадсангүй. Байгууллагын ажилтнаас тусламж авна уу.';
@@ -232,6 +423,6 @@ async function init(){
   }
 }
 init();
-window.addEventListener('beforeunload',()=>{cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
+window.addEventListener('beforeunload',()=>{wakeListener?.disable();cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
 
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));

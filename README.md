@@ -88,3 +88,15 @@ GitHub Actions automatically runs npm run check on push. Unit tests cover risky 
 Before pharmacy rollout: verified Mongolian medicines catalog, pharmacist approval and legal review, POS/stock API, staff webhook, real-device and noisy-room speech QA, TLS, server persistence, data privacy notice and vendor agreements, monitoring, backups, accessibility and site-specific signage.
 
 **Current scope:** functional code and demo workflows with optional provider integration. API keys, approved ElevenLabs Agent, verified pharmacy inventory, real pharmacist integration, privacy/legal review and physical-device acceptance testing are not supplied by the repository and remain mandatory before production use.
+
+## Эмийн сангийн hands-free киоск тохиргоо
+
+1. Эмийн сангийн **тогтмол компьютер дээр HTTPS Chrome/Edge** ашиглан сайт нээнэ.
+2. Ажилтан **«Микрофон зөвшөөрөх»** товч дарж browser-ийн зөвшөөрлийг олгоно. Дараа нь микрофоны сонсох төлөв дэлгэц дээр үргэлж ил харагдана. Хэрэглэгч «Сайн байна уу?» гэж хэлэхэд туслах ярианы горим руу шилжинэ.
+3. **«Томруулах»** товч дарж том дүртэй киоск горим болон browser fullscreen ажиллуулна. UI layout тухайн browser дээр хадгалагдана; browser fullscreen нь page reload/OS boot дараа автоматаар баталгаатай хадгалагдахгүй. 24/7 төхөөрөмжид managed Chrome `--kiosk` эсвэл Edge Assigned Access хэрэглэнэ.
+4. Wake detection-д Chrome/Edge Web Speech Recognition хэрэгтэй бөгөөд браузераас хамааран network ашиглаж, сонсгол нь тасалдаж болно. Бодит 24/7 unattended киоск бол local wake-word hardware/runtime ба хяналтын restart policy-г тусад нь баталгаажуулна.
+5. ElevenLabs Agent approved, API key, agent ID, `VOICE_AGENT_CLINICAL_APPROVED=true` зэрэг тохиргоо бүгд хийгдээгүй бол зөвхөн browser-ийн demo/safe text QA боломжтой. Эмчилгээ, тун зөвлөхгүй.
+6. Хэрэглэгч 2 минут идэвхгүй үед хувь хүний ярианы UI цэвэрлэгдэж мэндчилгээний горимд буцна.
+7. Дууны waveform ба нүүрний хөдөлгөөн нь ElevenLabs SDK-ийн live audio volume дээр суурилсан **energy lip sync** болохоос viseme / 3D facial rig биш. Дараагийн шатанд лицензтэй GLB/ARKit morph targets ашиглаж болно.
+
+**Нууцлал:** Ойр байгаа хүмүүсийн яриа browser-ийн Speech Recognition provider-д дамжиж болох тул үйлчлүүлэгчид ойлгомжтой анхааруулга, байгууллагын зөвшөөрлийн журам шаардлагатай. Browser permission нь төхөөрөмж, site origin-той холбоотой бөгөөд OS-ийн бодлогоос хамаарна.
