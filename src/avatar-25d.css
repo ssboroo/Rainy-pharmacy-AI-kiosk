@@ -158,3 +158,21 @@
   .immersive-kiosk .stage-persona{flex-basis:32dvh!important;min-height:180px!important;max-height:calc(100dvh - 165px)}
   .immersive-kiosk .stage-persona #avatar25{min-height:180px}
 }
+
+/* Layered facial personality cues — CSS-only, low-energy kiosk animation */
+#avatar25[data-expression="attentive"] .avatar25-eye{filter:drop-shadow(0 0 7px rgba(151,242,222,.7))}
+#avatar25[data-expression="attentive"] .avatar25-orbit{animation-duration:18s;opacity:.82}
+#avatar25[data-expression="thinking"] .avatar25-orbit{animation-duration:9s;opacity:.92}
+#avatar25[data-expression="thinking"] .avatar25-head{filter:drop-shadow(0 7px 8px rgba(48,117,155,.16))}
+#avatar25[data-expression="speaking"] .avatar25-head{filter:drop-shadow(0 6px calc(3px + var(--sound-level)*17px) rgba(91,199,175,.45))}
+#avatar25[data-expression="speaking"] .avatar25-mouth-open{filter:drop-shadow(0 1px 3px rgba(234,124,153,.46))}
+#avatar25[data-expression="concerned"] .avatar25-mouth-smile{opacity:.3;transform:scaleY(.35);transform-origin:400px 430px}
+#avatar25[data-expression="concerned"] .avatar25-orbit{animation-play-state:paused}
+#avatar25[data-expression="calm"] .avatar25-mouth-smile{opacity:1}
+#avatar25 .avatar25-antenna,#avatar25 .avatar25-hologram-halo{animation:avatar25-signature 4.8s ease-in-out infinite}
+#avatar25 .avatar25-bunny-ears,#avatar25 .avatar25-fox-ears{transform-origin:400px 240px;animation:avatar25-ears 6s ease-in-out infinite}
+@keyframes avatar25-signature{0%,100%{opacity:.86}55%{opacity:1;filter:drop-shadow(0 0 5px rgba(255,255,255,.6))}}
+@keyframes avatar25-ears{0%,100%{transform:rotate(0deg)}53%{transform:rotate(.8deg)}}
+@media(prefers-reduced-motion:reduce){
+  #avatar25 .avatar25-antenna,#avatar25 .avatar25-hologram-halo,#avatar25 .avatar25-bunny-ears,#avatar25 .avatar25-fox-ears{animation:none!important}
+}

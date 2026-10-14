@@ -9,7 +9,7 @@ const $=id=>document.getElementById(id);
 let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=null,resetTimer=null;
 let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
 let lastWakeAt=0;
-let avatar25=null;
+let avatar25=null,localSessionWanted=false;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -88,7 +88,7 @@ async function ask(question){
   try{
     const answer=await api('/ask',{method:'POST',body:JSON.stringify({question:q})});
     addMessage('assistant',answer.reply);
-    if(recognition){const active=recognition;recognition=null;active.onend=null;active.onerror=null;try{active.abort();}catch{};const audible=await speakBrowser(answer.reply);if(!audible)toast('Энэ төхөөрөмжийн Монгол хэлний TTS дэмжлэг хязгаарлагдмал. ElevenLabs Voice Agent-г админ дээр шалгана уу.');if(wakeListener?.enabled||localStorage.getItem(WAKE_STORAGE_KEY)==='1')await startLocalVoiceSession(false);}
+    if(recognition){const active=recognition;recognition=null;active.onend=null;active.onerror=null;try{active.abort();}catch{};const audible=await speakBrowser(answer.reply);if(!audible)toast('Энэ төхөөрөмжийн Монгол хэлний TTS дэмжлэг хязгаарлагдмал. ElevenLabs Voice Agent-г админ дээр шалгана уу.');if(localSessionWanted&&!conversation)await startLocalVoiceSession(false);}
     if(answer.kind==='emergency')toast('ЯАРАЛТАЙ: Эм зүйчийг дуудаж, шаардлагатай бол 103 руу залгаарай.');
   }catch(e){toast(e.message);}
 }
@@ -205,6 +205,8 @@ async function restoreMicIfGranted(){
   updateMicrophoneUI();
 }
 async function stopVoice(resumeWake=true){
+  localSessionWanted=false;
+  try{window.speechSynthesis?.cancel();}catch{}
   if(recognition){const old=recognition;recognition=null;old.onend=null;old.onerror=null;old.onresult=null;try{old.abort();}catch{}}
   if(conversation){const old=conversation;conversation=null;try{await old.endSession();}catch{}}
   voiceStarting=false;
@@ -235,10 +237,19 @@ async function startLocalVoiceSession(fromWake){
     }
   };
   session.onerror=event=>{
-    if(['not-allowed','service-not-allowed','audio-capture'].includes(event.error||''))toast('Микрофоны алдаа: '+event.error);
+    if(['not-allowed','service-not-allowed','audio-capture'].includes(event.error||'')){
+      localSessionWanted=false;
+      toast('Микрофоны алдаа: '+event.error);
+    }
   };
-  session.onend=()=>{if(recognition===session){recognition=null;stopVoice();}};
-  try{session.start();$('micBtnText').textContent='Яриаг зогсоох';setStatus('listening');}
+  session.onend=()=>{
+    if(recognition!==session)return;
+    recognition=null;
+    if(localSessionWanted&&!conversation){
+      setTimeout(()=>{if(localSessionWanted&&!recognition&&!conversation&&!voiceStarting)startLocalVoiceSession(false);},900);
+    }else stopVoice();
+  };
+  try{session.start();localSessionWanted=true;$('micBtnText').textContent='Яриаг зогсоох';setStatus('listening');}
   catch(e){recognition=null;toast(e.message);await stopVoice();}
 }
 async function startVoice(fromWake=false){
@@ -464,7 +475,7 @@ async function init(){
     $('heroDescription').textContent='Эмийн мэдээлэл, үнэ, байршлын талаар асуугаарай.';
     $('greetingBubble').textContent=config.greeting;
     $('demoBanner').hidden=!config.demoMode;
-    $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent холбогдсон · Микрофоноо асаана уу':'Browser дуут танилт / бичгээр асуулт · Agent хараахан холбогдоогүй';
+    $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent идэвхтэй · Микрофоноо асаана уу':config.voiceConfigured?'Agent ID / API key тохируулсан. Эмнэлзүйн зөвшөөрөл дутуу — админаас шалгана уу.':'Browser дуут танилт / бичгээр асуулт · ElevenLabs Agent холболт дутуу';
     renderAvatars();
     await loadPremium2D5();
     makeWakeListener();
