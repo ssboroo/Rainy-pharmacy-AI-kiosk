@@ -11,6 +11,7 @@ let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=
 let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
 let lastWakeAt=0;
 let avatar25=null,localSessionWanted=false;
+let analyticsSessionRecorded=false;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -24,9 +25,24 @@ function toast(message){
   const el=$('toast');el.textContent=message;el.hidden=false;
   clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,5200);
 }
+// Privacy by design: only a known event enum travels to the analytics endpoint.
+// No question text, medicine names, browser identifiers, audio, user info or IP metadata.
+function trackAnalytics(event){
+  fetch('/api/analytics/event',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({event}),cache:'no-store',keepalive:true
+  }).catch(()=>{}); // usage statistics must never interrupt pharmacy assistance
+}
+function markKioskInteraction(){
+  if(!analyticsSessionRecorded){
+    analyticsSessionRecorded=true;
+    trackAnalytics('sessionStarted');
+  }
+}
 function activity(){
   clearTimeout(resetTimer);
   resetTimer=setTimeout(async()=>{
+    analyticsSessionRecorded=false;
     await stopVoice();
     $('conversation').replaceChildren();
     addMessage('assistant',config?.greeting||'Сайн байна уу!');
@@ -85,6 +101,7 @@ function renderAvatars(){
 }
 async function ask(question){
   const q=question.trim();if(q.length<2)return;
+  markKioskInteraction();
   $('questionInput').value='';addMessage('user',q);
   try{
     const answer=await api('/ask',{method:'POST',body:JSON.stringify({question:q})});
@@ -258,6 +275,8 @@ async function startVoice(fromWake=false){
   if(voiceStarting)return;
   if(conversation||recognition){if(!fromWake)await stopVoice();return;}
   wakeListener?.pause();
+  markKioskInteraction();
+  trackAnalytics('voiceStarted');
   voiceStarting=true;
   startVoiceVisuals();
   $('micBtnText').textContent='Яриаг зогсоох';
@@ -270,7 +289,7 @@ async function startVoice(fromWake=false){
         signedUrl,
         connectionType:'websocket',
         workletPaths:ELEVENLABS_WORKLET_PATHS,
-        onConnect:()=>setStatus('listening'),
+        onConnect:()=>{setStatus('listening');trackAnalytics('voiceConnected');},
         onDisconnect:()=>{
           conversation=null;
           voiceStarting=false;
@@ -278,18 +297,21 @@ async function startVoice(fromWake=false){
           setStatus(wakeListener?.enabled?'wake':'ready');
           wakeListener?.resume(1800);
         },
-        onError:()=>toast('ElevenLabs холболт тасарлаа. Эм зүйчээс лавлах эсвэл бичгээр асууна уу.'),
+        onError:()=>{trackAnalytics('voiceFailed');toast('ElevenLabs холболт тасарлаа. Эм зүйчээс лавлах эсвэл бичгээр асууна уу.');},
         onModeChange:mode=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
         onMessage:message=>{
           const text=message.message;
-          if(text&&typeof text==='string'&&(message.source==='ai'||message.source==='user'))
+          if(text&&typeof text==='string'&&(message.source==='ai'||message.source==='user')){
+            if(message.source==='ai')trackAnalytics('voiceMessagesObserved');
             addMessage(message.source==='ai'?'assistant':'user',text);
+          }
         }
       });
       conversation=live;voiceStarting=false;startVoiceVisuals();
       return;
     }catch(e){
       voiceStarting=false;
+      trackAnalytics('voiceFailed');
       toast('ElevenLabs холболт боломжгүй: '+e.message);
       await stopVoice();return;
     }
@@ -310,6 +332,8 @@ function element(tag,cls,text){
   const el=document.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;
 }
 function showMedicineDetails(item,query=''){
+  markKioskInteraction();
+  trackAnalytics('medicineDetailsViewed');
   const body=modal(item.name);
   const note=element('p','modal-copy',item.verified?'Энэ бүтээгдэхүүний бүртгэлийг эмийн сан баталгаажуулсан.':'ЖИШЭЭ МЭДЭЭЛЭЛ · Эмийн сангийн бодит нөөц, үнэ, тун, хэрэглэх заавар биш.');
   note.classList.add('medicine-alert');
@@ -323,12 +347,16 @@ function showMedicineDetails(item,query=''){
   body.append(element('p','modal-copy','Энэ мэдээлэл нь онош, жор, хэрэглэх тунгийн зөвлөгөө биш. Эм зүйчээс баталгаажуулна уу.'));
   const row=element('div','medicine-detail-actions');
   const back=element('button','medicine-back','← Жагсаалт руу');
-  back.onclick=()=>catalogModal(query);
+  back.onclick=()=>catalogModal(query,true);
   const staff=element('button','medicine-staff','Эм зүйч дуудах');
   staff.onclick=()=>{closeModal();handoff();};
   row.append(back,staff);body.append(row);
 }
-async function catalogModal(initialQuery=''){
+async function catalogModal(initialQuery='',fromBack=false){
+  if(!fromBack){
+    markKioskInteraction();
+    trackAnalytics('catalogOpened');
+  }
   const body=modal('Эмийн мэдээлэл хайх');
   const prompt=element('p','modal-copy','30 төрлийн жишээ эмийн мэдээлэл. Бодит үнэ, үлдэгдэл, заавар баталгаажаагүй. Эм зүйчээс лавлана уу.');
   const input=element('input','search-field');input.placeholder='Жишээ: Парацетамол';input.setAttribute('aria-label','Эмийн нэр хайх');
@@ -381,6 +409,7 @@ async function visionLookup(image,body){
   }catch(e){results.replaceChildren(element('p','modal-copy',e.message));}
 }
 async function cameraModal(){
+  markKioskInteraction();
   const body=modal('Эмийн савлагаа уншуулах');
   body.append(element('p','modal-copy','Зураг зөвхөн таны идэвхтэй зөвшөөрлөөр шошго таних AI үйлчилгээ рүү дамжина. Хувийн мэдээлэл, жорын зураг бүү оруулаарай.'));
   const frame=element('div','camera-frame');const video=document.createElement('video');video.autoplay=true;video.muted=true;video.playsInline=true;
@@ -405,6 +434,7 @@ async function cameraModal(){
   upload.onchange=async()=>{try{const image=await imageData(upload.files[0]);await visionLookup(image,body);}catch(e){toast(e.message);}};
 }
 async function handoff(){
+  markKioskInteraction();
   activity();
   try{const answer=await api('/handoff',{method:'POST',body:'{}'});addMessage('assistant',answer.message);toast(answer.message);}
   catch(e){addMessage('assistant','Ажилтан дуудах систем ажиллахгүй байна. Эмийн сангийн ажилтанд биечлэн хандана уу.');toast(e.message);}
