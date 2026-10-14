@@ -53,6 +53,14 @@ test('real HTTP server: safety, admin changes, provider consent and persistence 
     assert.equal(signed.status,503);
     const denied=await api('/api/admin/settings');
     assert.equal(denied.status,401);
+    const privateAnalytics=await api('/api/admin/analytics?days=7');
+    assert.equal(privateAnalytics.status,401,'kiosk guests must not see business reports');
+    const refused=await api('/api/analytics/event',json({event:'verifiedCatalogAnswers'}));
+    assert.equal(refused.status,400,'public kiosk must not forge verified answers');
+    const malformed=await api('/api/analytics/event',json({event:'sessionStarted',prescription:'private health information'}));
+    assert.equal(malformed.status,400,'extra personal payload fields are forbidden');
+    const opened=await api('/api/analytics/event',json({event:'sessionStarted'}));
+    assert.equal(opened.status,200);
     const token='test-token-long-enough-for-admin-access';
     const auth={authorization:'Bearer '+token};
     const changed=await api('/api/admin/settings',put({pharmacyName:'Шинэ салбар',defaultAvatar:'mira'},token));
@@ -71,6 +79,23 @@ test('real HTTP server: safety, admin changes, provider consent and persistence 
     assert.match(price.data.reply,/2,500|2500/);
     const confirm=await api('/api/admin/settings',{headers:auth});
     assert.equal(confirm.data.settings.defaultAvatar,'mira');
+    const report=await api('/api/admin/analytics?days=7',{headers:auth});
+    assert.equal(report.status,200);
+    assert.equal(report.data.days.length,7);
+    assert.equal(report.data.totals.questionsAsked,3);
+    assert.equal(report.data.totals.pharmacistReferrals,2);
+    assert.equal(report.data.totals.emergencyEscalations,1);
+    assert.equal(report.data.totals.verifiedCatalogAnswers,1);
+    assert.equal(report.data.totals.sessionStarted,1);
+    assert.equal(report.data.estimatedStaffMinutes,undefined);
+    const csv=await fetch(url+'/api/admin/analytics.csv?days=7',{headers:auth});
+    assert.equal(csv.status,200);
+    assert.match(csv.headers.get('content-type'),/text\/csv/);
+    const csvBody=await csv.text();
+    assert.match(csvBody,/verifiedCatalogAnswers/);
+    assert.doesNotMatch(csvBody,/Парацетамол|prescription/i);
+    const deniedCsv=await fetch(url+'/api/admin/analytics.csv');
+    assert.equal(deniedCsv.status,401);
   }finally{
     child.kill('SIGTERM');
     await new Promise(resolve=>{if(child.exitCode!==null)resolve();else child.once('exit',resolve);});
