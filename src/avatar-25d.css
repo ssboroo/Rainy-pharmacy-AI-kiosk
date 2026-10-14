@@ -92,3 +92,39 @@
   #avatar25 .avatar25-head, #avatar25 .avatar25-gaze{transform:none!important}
   #avatar25 .rainy-2d5-portrait{filter:none}
 }
+
+/* Head-only kiosk treatment. No shoulders, chest, body or neck in any variant. */
+#avatar25 .avatar25-body,
+#avatar25 .avatar25-torso,
+#avatar25 .avatar25-shoulder,
+.avatar-thumbnail .thumb-body,
+.stage-persona:not(.avatar-25d-ready) #avatarMount .avatar-body,
+.stage-persona:not(.avatar-25d-ready) #avatarMount .avatar-neck{display:none!important}
+.stage-persona:not(.avatar-25d-ready) #avatarMount .avatar-face{transform:translateY(52px) scale(1.18)}
+.stage-persona:not(.avatar-25d-ready) #avatarMount{height:265px}
+#avatar25 .rainy-2d5-portrait{
+  transform:scale(1.20) translateY(1%);
+  max-width:850px;
+  max-height:790px;
+}
+.immersive-kiosk #avatar25 .rainy-2d5-portrait{
+  max-width:1250px;
+  transform:scale(1.43) translateY(1.3%);
+}
+.avatar25-fox-ears,
+.avatar25-bunny-ears,
+.avatar25-human-hair,
+.avatar25-hologram-halo,
+.avatar25-antenna{pointer-events:none}
+.avatar-thumbnail .thumb-head{top:11px;left:7px;transform:scale(1.11)}
+.avatar-thumbnail .thumb-ears{transform:translateY(-2px)}
+@media(max-width:680px){
+  #avatar25 .rainy-2d5-portrait{transform:scale(1.13)}
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.18)}
+}
+@media(max-height:690px){
+  .immersive-kiosk #avatar25 .rainy-2d5-portrait{transform:scale(1.08)}
+}
+@media(prefers-reduced-motion:reduce){
+  #avatar25 .rainy-2d5-portrait{transform:scale(1.1)!important}
+}
