@@ -40,7 +40,7 @@ function selectAvatar(id){
   const data=config.avatars.find(a=>a.id===id);if(!data)return;
   selected=id;
   $('avatarMount').className='portrait '+id;
-  $('assistantTitle').textContent=data.name;
+  $('assistantTitle').textContent=id===config.defaultAvatar&&config.assistantName?config.assistantName:data.name;
   $('personaSubtitle').textContent=byId[id];
   document.documentElement.style.setProperty('--avatar-accent',data.color);
   for(const button of $('avatarList').querySelectorAll('button'))button.classList.toggle('selected',button.dataset.avatar===id);
@@ -218,6 +218,8 @@ async function init(){
     config=await api('/bootstrap');
     document.documentElement.style.setProperty('--accent',config.accent);
     $('locationLabel').textContent=config.locationName;
+    $('pharmacyNameLabel').textContent=config.pharmacyName;
+    document.title=config.pharmacyName+' — AI Kiosk';
     $('heroDescription').textContent='Эмийн мэдээлэл, үнэ, байршлын талаар асуугаарай.';
     $('greetingBubble').textContent=config.greeting;
     $('demoBanner').hidden=!config.demoMode;

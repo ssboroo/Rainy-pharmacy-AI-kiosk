@@ -26,6 +26,7 @@ function persist(filename,value){
   });
   return saves;
 }
+function validateInput(fn){try{return fn();}catch(error){error.code=400;throw error;}}
 function respond(res,status,data){
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});
   res.end(JSON.stringify(data));
@@ -149,12 +150,14 @@ async function handle(req,res){
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings});
       if(req.method==='GET'&&route==='/api/admin/catalog')return respond(res,200,{items:catalog});
       if(req.method==='PUT'&&route==='/api/admin/settings'){
-        const value=validateSettings(await bodyJson(req,12000),settings);
+        const input=await bodyJson(req,12000);
+        const value=validateInput(()=>validateSettings(input,settings));
         await persist(settingsPath,value);settings=value;
         return respond(res,200,{settings});
       }
       if(req.method==='PUT'&&route==='/api/admin/catalog'){
-        const value=validateCatalog(await bodyJson(req,1000000));
+        const input=await bodyJson(req,1000000);
+        const value=validateInput(()=>validateCatalog(input));
         await persist(catalogPath,value);catalog=value;
         return respond(res,200,{count:catalog.length});
       }

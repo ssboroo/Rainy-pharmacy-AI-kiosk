@@ -61,7 +61,7 @@ test('real HTTP server: safety, admin changes, provider consent and persistence 
     assert.equal(newBoot.data.pharmacyName,'Шинэ салбар');
     assert.equal(newBoot.data.defaultAvatar,'mira');
     const invalid=await api('/api/admin/catalog',put([{name:'A',verified:true}],token));
-    assert.equal(invalid.status,500===invalid.status?500:400); // checked below through successful rejection
+    assert.equal(invalid.status,400);
     const newItems=[{id:'verified-one',name:'Тест Эм',verified:true,sourceUrl:'https://example.org/medicine',verifiedAt:'2026-10-14',priceMnt:2500,stock:4,shelf:'B-2'}];
     const saved=await api('/api/admin/catalog',put(newItems,token));
     assert.equal(saved.status,200);
