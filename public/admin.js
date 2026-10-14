@@ -65,7 +65,10 @@ const METRIC_CARDS=[
   {key:'pharmacistReferrals',name:'Эм зүйчид шилжүүлсэн',hint:'Зөвлөсөн шилжүүлэлт',icon:'↗'},
   {key:'medicineDetailsViewed',name:'Бүтээгдэхүүн үзсэн',hint:'Төхөөрөмжөөс тоолсон үзэлт',icon:'▤'},
   {key:'voiceConnected',name:'Дуут Agent холбогдсон',hint:'Төхөөрөмжөөс тоолсон холболт',icon:'♫'},
+  {key:'voiceMessagesObserved',name:'Дуут AI хариулсан',hint:'Төхөөрөмж мэдээлсэн AI мессеж',icon:'♬'},
+  {key:'unresolvedQuestions',name:'Хариулаагүй асуулт',hint:'Каталогоос олдоогүй',icon:'?'},
   {key:'staffRequests',name:'Эм зүйч дуудсан',hint:'Серверт ирсэн хүсэлт',icon:'♡'},
+  {key:'emergencyEscalations',name:'Яаралтай чиглүүлэлт',hint:'Эмийн аюулгүй байдлын дохио',icon:'!'},
 ];
 function renderAnalytics(){
   const report=recentAnalytics;
