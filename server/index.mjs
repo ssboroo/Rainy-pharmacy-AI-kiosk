@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readFile,writeFile,rename,mkdir,stat} from 'node:fs/promises';
 import {timingSafeEqual} from 'node:crypto';
-import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings} from './core.mjs';
+import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed} from './core.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..'),dist=path.join(root,'dist');
@@ -35,7 +35,7 @@ function secured(res){
   res.setHeader('Referrer-Policy','no-referrer');
   res.setHeader('X-Frame-Options','DENY');
   res.setHeader('Permissions-Policy','camera=(self), microphone=(self), geolocation=()');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.elevenlabs.io wss://*.elevenlabs.io https://*.elevenlabs.io; worker-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'");
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://api.elevenlabs.io wss://*.elevenlabs.io https://*.elevenlabs.io; worker-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'");
 }
 function isAdmin(req){
   const expected=process.env.ADMIN_TOKEN;
@@ -71,7 +71,7 @@ async function external(url,opts){
 }
 const agentId=()=>settings.agentId||process.env.ELEVENLABS_AGENT_ID||'';
 async function signedUrl(){
-  if(!process.env.ELEVENLABS_API_KEY||!agentId())throw Object.assign(Error('ElevenLabs Agent одоогоор холбогдоогүй байна.'),{code:503});
+  if(!voiceAllowed(process.env,agentId()))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
   const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId());
   const result=await external(url,{headers:{'xi-api-key':process.env.ELEVENLABS_API_KEY}});
   if(typeof result.signed_url!=='string')throw Object.assign(Error('Signed URL олдсонгүй'),{code:502});
@@ -127,7 +127,7 @@ async function handle(req,res){
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
       pharmacyName:settings.pharmacyName,assistantName:settings.assistantName,greeting:settings.greeting,defaultAvatar:settings.defaultAvatar,accent:settings.accent,locationName:settings.locationName,
-      avatars:AVATARS,voiceReady:!!(process.env.ELEVENLABS_API_KEY&&agentId()),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
+      avatars:AVATARS,voiceReady:voiceAllowed(process.env,agentId()),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:catalog.some(v=>!v.verified)
     });
     if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',catalog),demoMode:catalog.some(v=>!v.verified)});

@@ -5,6 +5,7 @@ export const AVATARS = [
   {id:'aria',name:'Ариа',style:'Hologram',color:'#8bc7f6'},
   {id:'bobo',name:'Бобо',style:'Туслах робот',color:'#fbb7d9'}
 ];
+export function voiceAllowed(env, agentId) { return !!(env.ELEVENLABS_API_KEY && agentId && env.VOICE_AGENT_CLINICAL_APPROVED === 'true'); }
 export const DEFAULT_SETTINGS = {
   pharmacyName:'RAINY Pharmacy',assistantName:'Номи',
   greeting:'Сайн байна уу! Би таны эмийн сангийн AI туслах. Надаас асуугаарай.',

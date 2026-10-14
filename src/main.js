@@ -231,3 +231,5 @@ async function init(){
 }
 init();
 window.addEventListener('beforeunload',()=>{cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
+
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
