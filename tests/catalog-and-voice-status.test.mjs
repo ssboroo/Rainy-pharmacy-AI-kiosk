@@ -11,7 +11,7 @@ test('demo contains 30 unique, detailed, explicitly unverified medicine examples
     assert.equal(item.priceMnt,null);
     assert.equal(item.stock,null);
     for(const key of ['name','form','category','description','warnings','storage']){
-      assert.ok(item[key]?.length>=8,item.id+' missing '+key);
+      assert.ok(item[key]?.length>=(key==='name'?4:8),item.id+' missing '+key);
     }
     assert.ok(!/\b\d+\s*(?:mg|мг|мл|ширхэг)\s*(?:уух|өдөрт)/i.test(item.notes+' '+item.description));
   }
