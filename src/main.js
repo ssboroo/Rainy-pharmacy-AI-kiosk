@@ -72,7 +72,7 @@ function renderAvatars(){
     button.className='avatar-option';
     button.dataset.avatar=a.id;
     const visual=document.createElement('span');visual.className='avatar-thumbnail '+a.id;
-    visual.innerHTML='<i class="thumb-ears"></i><i class="thumb-head"><b class="thumb-eye eye-one"></b><b class="thumb-eye eye-two"></b><b class="thumb-mouth"></b></i><i class="thumb-body"></i>';
+    visual.innerHTML='<i class="thumb-ears"></i><i class="thumb-head"><b class="thumb-eye eye-one"></b><b class="thumb-eye eye-two"></b><b class="thumb-mouth"></b></i>';
     const text=document.createElement('span');text.className='avatar-text';
     const name=document.createElement('strong');name.textContent=a.name;
     const style=document.createElement('small');style.textContent=a.style;
