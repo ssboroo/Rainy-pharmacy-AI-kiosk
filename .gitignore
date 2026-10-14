@@ -3,3 +3,6 @@ dist/
 .env
 storage/
 *.log
+
+# Generated from installed @elevenlabs/client (version-matched by build)
+public/vendor/elevenlabs/

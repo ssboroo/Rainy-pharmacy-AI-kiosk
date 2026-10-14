@@ -125,3 +125,9 @@ Before pharmacy rollout: verified Mongolian medicines catalog, pharmacist approv
 Бүгд толгой дохих, нүд анивчлах, харц дагах, сонсох/бодох/ярих төлөв болон real-time waveform-тэй. Зөвшөөрөгдсөн ElevenLabs Agent ажиллаж байгаа үед дууны хүчээр амны хөдөлгөөн хэмжигдэнэ. Энэ нь яг үг/авианд тохируулсан viseme lip-sync биш.
 
 Микрофон, wake greeting, эмийн аюулгүй байдлын хамгаалалт, admin Agent ID тохиргоо болон Railway volume хэвээр хадгалагдсан. Fullscreen үед толгой томорно; гар утас, таблет дээр SVG өөрөө хэмжээгээ тааруулна. GPU 3D шаардлагагүй.
+
+## 2026-10-14: ElevenLabs AudioWorklet CSP fix
+
+ElevenLabs SDK defaults to blob/data-based AudioWorklets. The kiosk's strict `script-src 'self'` CSP blocks them, resulting in `Failed to load the rawAudioProcessor worklet module`. Build now **copies version-matched upstream processors** from `@elevenlabs/client/worklets/rawAudioProcessor.js` and `audioConcatProcessor.js` to `public/vendor/elevenlabs/` **before** Vite generates `dist`. `Conversation.startSession` uses same-origin `workletPaths` for WebSocket signed-URL connections, without weakening the CSP. The service worker never intercepts those processor URLs, avoiding HTML/offline fallbacks. After deploy, verify that both URLs return HTTP 200 with a JavaScript content type and contain `registerProcessor`.
+
+This fixes the reported CSP AudioWorklet issue; it does **not** replace microphone permission, agent provider configuration or licensed pharmacist sign-off. Test voice on a supported browser (current Chrome/Edge via HTTPS). Ask the kiosk operator to refresh/reload once after deployment.

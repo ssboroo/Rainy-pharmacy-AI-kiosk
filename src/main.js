@@ -1,4 +1,5 @@
 import {Conversation} from '@elevenlabs/client';
+import {ELEVENLABS_WORKLET_PATHS} from './voice-worklets.js';
 import './style.css';
 import './kiosk.css';
 import './avatar-25d.css';
@@ -268,6 +269,7 @@ async function startVoice(fromWake=false){
       const live=await Conversation.startSession({
         signedUrl,
         connectionType:'websocket',
+        workletPaths:ELEVENLABS_WORKLET_PATHS,
         onConnect:()=>setStatus('listening'),
         onDisconnect:()=>{
           conversation=null;
