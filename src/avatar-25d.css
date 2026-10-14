@@ -128,3 +128,33 @@
 @media(prefers-reduced-motion:reduce){
   #avatar25 .rainy-2d5-portrait{transform:scale(1.1)!important}
 }
+
+/* Fullscreen portrait containment fix (2026-10-14).
+   An absolutely positioned SVG alone contributes no intrinsic flex height.
+   Give the portrait area a real frame and bound the head to its height. */
+.immersive-kiosk .stage-card{display:flex!important;flex-direction:column!important}
+.immersive-kiosk .stage-persona{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  position:relative!important;flex:1 1 48dvh!important;
+  width:100%!important;min-height:clamp(240px,44dvh,680px)!important;
+  max-height:calc(100dvh - 200px);overflow:visible!important;
+}
+.immersive-kiosk .stage-persona #avatar25{
+  position:absolute!important;inset:0!important;z-index:4!important;
+  width:100%!important;height:100%!important;min-height:240px;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  opacity:1!important;visibility:visible!important;overflow:visible!important;
+}
+.immersive-kiosk .stage-persona #avatar25 .rainy-2d5-portrait{
+  flex:none!important;display:block!important;
+  height:100%!important;max-height:100%!important;
+  width:min(95%,1000px)!important;max-width:1000px!important;
+  object-fit:contain!important;transform:none!important;
+  visibility:visible!important;opacity:1!important;
+}
+.immersive-kiosk .stage-persona.avatar-25d-ready #avatarMount{visibility:hidden}
+.immersive-kiosk .stage-top,.immersive-kiosk .stage-caption,.immersive-kiosk .stage-controls{flex-shrink:0}
+@media(max-height:700px){
+  .immersive-kiosk .stage-persona{flex-basis:32dvh!important;min-height:180px!important;max-height:calc(100dvh - 165px)}
+  .immersive-kiosk .stage-persona #avatar25{min-height:180px}
+}

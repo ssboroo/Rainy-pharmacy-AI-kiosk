@@ -27,8 +27,8 @@ export function mergeLegacyDemoCatalog(items){
 }
 export function normalizeText(s) { return String(s||'').normalize('NFKC').toLocaleLowerCase('mn').replace(/\s+/g,' ').trim(); }
 export function searchCatalog(q,items) {
-  const text=normalizeText(q); if(!text) return items.slice(0,25);
-  return items.filter(v=>[v.name,...(v.aliases||[])].some(n=>normalizeText(n).includes(text))).slice(0,25);
+  const text=normalizeText(q); if(!text) return items.slice(0,60);
+  return items.filter(v=>[v.name,...(v.aliases||[])].some(n=>normalizeText(n).includes(text))) .slice(0,60);
 }
 const emergency=['амьсгал давч','амьсгал боог','ухаан ал','зүрх зогс','таталт','хордлого','хордсон','харшлын шок','цус их ал','амиа хор','анафилак'];
 const clinical=['тун','хэдэн ширхэг','хэдийг уух','яаж уух','ууж болох','уулгах','жирэмсэн','хөхүүл','нярай','хүүхэд','хүүхдэд','гаж нөлөө','харшил','давхар уух','хамт уух','зэрэг уух','онош','эмчилгээ','өвдөж','өвдөөд','юу уух','жоргүй өг','солих уу','эм орлуулах'];
