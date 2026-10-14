@@ -65,7 +65,7 @@ test('CSV export contains daily aggregates and no identifying data',async()=>{
     const csv=analyticsCSV(store.report(7));
     assert.match(csv,/date,questionsAsked,verifiedCatalogAnswers/);
     assert.match(csv,/2026-10-14,1,1/);
-    assert.doesNotMatch(csv,/question|transcript|name of client/i);
+    assert.doesNotMatch(csv,/personal prescription|fullName|transcript|ipAddress/i);
     assert.equal(csv.split('\n').length,9);
   }finally{await rm(dir,{recursive:true,force:true});}
 });
