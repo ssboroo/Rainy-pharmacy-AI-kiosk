@@ -23,6 +23,7 @@ $('login').onclick=async()=>{
     for(const key of ['pharmacyName','assistantName','greeting','locationName','agentId','defaultAvatar','accent']) if($(key))$(key).value=config[key];
     $('idleTimeoutSec').value=config.idleTimeoutSec??120;
     $('resetOnDisconnect').checked=config.resetOnDisconnect!==false;
+    $('integrationAgentId').value=config.agentId||'';
     logoData=config.logoData||'';
     updateLogoPreview();
     $('catalog').value=JSON.stringify(c.items,null,2);
@@ -449,4 +450,16 @@ $('adminNavToggle').onclick=()=>{
  const side=document.querySelector('.admin-side');
  const opened=side.classList.toggle('is-open');
  $('adminNavToggle').setAttribute('aria-expanded',String(opened));
+};
+
+$('integrationAgentSave').onclick=async()=>{
+ const button=$('integrationAgentSave');button.disabled=true;
+ try{
+  const agentId=$('integrationAgentId').value.trim();
+  await api('settings','PUT',{agentId});
+  $('agentId').value=agentId;
+  await refreshIntegrations();
+  await refreshVoiceStatus();
+  show('ElevenLabs Agent ID хадгалагдлаа. API түлхүүр серверийн нууц тохиргоонд хадгалагдана.');
+ }catch(error){show('Agent холболт: '+error.message);}finally{button.disabled=false;}
 };
