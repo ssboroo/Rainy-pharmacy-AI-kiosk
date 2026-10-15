@@ -29,7 +29,9 @@ export function createBackupManager({directory,dataDir,now=()=>new Date(),maxFil
  async function verify(filename){
   if(typeof filename!=='string'||!/^rainy-[\dTZ-]+-[a-f0-9]{10}\.json$/.test(filename))throw Error('Invalid backup name');
   const raw=await readFile(join(directory,filename),'utf8');
-  return {filename,sha256:createHash('sha256').update(raw).digest('hex'),payload:JSON.parse(raw)};
+  const sha256=createHash('sha256').update(raw).digest('hex');
+  if(!filename.endsWith('-'+sha256.slice(0,10)+'.json'))throw Object.assign(Error('Backup checksum mismatch'),{code:422});
+  return {filename,sha256,payload:JSON.parse(raw)};
  }
  return {snapshot,list,verify};
 }
