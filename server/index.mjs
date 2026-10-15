@@ -13,6 +13,7 @@ import {createPostgresMirror} from './postgres-mirror.mjs';
 import {createOffsiteBackup} from './offsite-backup.mjs';
 import {parseInventorySnapshot,applyInventorySnapshot,buildProviderStatus,shouldEscalateVoiceText} from './phase2.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
+import {buildCatalogVoiceContext} from './voice-catalog.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..'),dist=path.join(root,'dist');
@@ -31,7 +32,7 @@ const offsite=createOffsiteBackup({
 });
 const operationsState={postgresConnected:false,offsiteLastVerifiedAt:null,offsiteLastKey:null,offsiteError:null,postgresError:null};
 const port=Number(process.env.PORT||3000);
-const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:DEMO_CATALOG});
+const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:[]});
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
 async function automatedSnapshot(){
   const scrub=ctx=>({
@@ -156,6 +157,7 @@ function voiceEnvironment(ctx){
   const allowed=process.env.VOICE_AGENT_CLINICAL_APPROVED==='true'&&approved.includes(ctx.slug);
   return {...process.env,VOICE_AGENT_CLINICAL_APPROVED:allowed?'true':'false'};
 }
+function publicMedicines(ctx){return ctx===defaultBranch?ctx.catalog:ctx.catalog.filter(x=>x.verified===true);}
 function agentDiagnostics(ctx){
   const status=voiceConnectionStatus(voiceEnvironment(ctx),agentId(ctx));
   return {...status,agentIdMasked:status.agentConfigured?(agentId(ctx).slice(0,6)+'••••'+agentId(ctx).slice(-4)):'',message:!status.agentConfigured?'ElevenLabs Agent ID дутуу.':!status.keyConfigured?'Railway дээр ELEVENLABS_API_KEY дутуу.':!status.clinicalApproved?'Эмийн аюулгүй байдлыг эм зүйч баталгаажуулсны дараа VOICE_AGENT_CLINICAL_APPROVED=true тохируулна.':'Voice Agent яриа эхлүүлэхэд бэлэн.'};
@@ -200,7 +202,7 @@ async function vision(image,ctx){
     })
   });
   const text=textFromResponse(data).slice(0,800);
-  const matched=ctx.catalog.filter(v=>[v.name,...(v.aliases||[])].some(n=>normalizeText(text).includes(normalizeText(n)))).slice(0,5);
+  const matched=publicMedicines(ctx).filter(v=>[v.name,...(v.aliases||[])].some(n=>normalizeText(text).includes(normalizeText(n)))).slice(0,5);
   return {recognizedText:text||'Нэрийг тодорхой таньсангүй.',matches:matched,needsConfirmation:true};
 }
 async function handoff(ctx){
@@ -242,7 +244,7 @@ async function handle(req,res){
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
       pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,idleTimeoutSec:ctx.settings.idleTimeoutSec??120,resetOnDisconnect:ctx.settings.resetOnDisconnect!==false,avatarIdleEnabled:ctx.settings.avatarIdleEnabled!==false,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
       avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
-      demoMode:ctx.catalog.some(v=>!v.verified)
+      demoMode:ctx===defaultBranch&&ctx.catalog.some(v=>!v.verified),catalogReady:publicMedicines(ctx).some(v=>v.verified)
     });
     if(req.method==='POST'&&route==='/api/device/heartbeat'){
       const value=await bodyJson(req,500);
@@ -260,18 +262,19 @@ async function handle(req,res){
       const escalation=shouldEscalateVoiceText(value.text);
       return respond(res,200,{requiresPharmacist:escalation,message:escalation?'Энэ асуудлыг эм зүйч шийдвэрлэнэ. Дуудаарай.':'Ерөнхий мэдээллийг баталгаажсан каталогоос шалгана уу.'});
     }
-    if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',ctx.catalog),demoMode:ctx.catalog.some(v=>!v.verified)});
+    if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',publicMedicines(ctx)),demoMode:ctx===defaultBranch&&ctx.catalog.some(v=>!v.verified)});
     if(req.method==='GET'&&route==='/api/catalog/names')return respond(res,200,{
-      items:ctx.catalog.map(({id,name,aliases})=>({id,name,aliases}))
+      items:publicMedicines(ctx).map(({id,name,aliases})=>({id,name,aliases}))
     });
     if(req.method==='GET'&&route==='/api/catalog/medicine'){
       const id=url.searchParams.get('id');
       if(typeof id!=='string'||id.length>80||!/^[a-zA-Z0-9_-]+$/.test(id))return respond(res,400,{error:'Бүтээгдэхүүний ID буруу.'});
-      const item=ctx.catalog.find(x=>x.id===id);
+      const item=publicMedicines(ctx).find(x=>x.id===id);
       if(!item)return respond(res,404,{error:'Эмийн мэдээлэл олдсонгүй.'});
       return respond(res,200,{item:{
         id:item.id,name:item.name,category:item.category,form:item.form,
         description:item.description,warnings:item.warnings,storage:item.storage,
+        priceMnt:item.priceMnt,stock:item.stock,shelf:item.shelf,imageUrl:item.imageUrl||'',
         verified:item.verified===true
       }});
     }
@@ -288,7 +291,7 @@ async function handle(req,res){
     if(req.method==='POST'&&route==='/api/ask'){
       const value=await bodyJson(req,4000);
       if(typeof value.question!=='string'||value.question.length>500)return respond(res,400,{error:'Асуултын урт буруу.'});
-      const answer=evaluateQuestion(value.question,ctx.catalog);
+      const answer=evaluateQuestion(value.question,publicMedicines(ctx));
       await ctx.analytics.recordInternal(metricForAnswer(answer));
       return respond(res,200,answer);
     }
@@ -305,6 +308,9 @@ async function handle(req,res){
       const result=await handoff(ctx);
       if(result.sent)await ctx.analytics.recordInternal(['staffRequestsSent']);
       return respond(res,200,result);
+    }
+    if(req.method==='GET'&&route==='/api/agent/voice-context'){
+      return respond(res,200,buildCatalogVoiceContext(publicMedicines(ctx),ctx.settings.pharmacyName));
     }
     if(req.method==='GET'&&route==='/api/agent/signed-url')return respond(res,200,await signedUrl(ctx,(ctx.slug||'central')+':'+String(req.socket.remoteAddress||'unknown')));
     if(route.startsWith('/api/admin/')){

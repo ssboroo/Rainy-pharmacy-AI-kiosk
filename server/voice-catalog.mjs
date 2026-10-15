@@ -1,0 +1,25 @@
+// Public, verified catalog content only. Never expose API secrets or personal history.
+export function buildCatalogVoiceContext(items=[],pharmacyName='Эмийн сан'){
+ const approved=items.filter(x=>x?.verified===true);
+ const keywords=[...new Set(approved.flatMap(x=>[x.name,...(x.aliases||[])])
+  .map(x=>String(x||'').trim()).filter(x=>x.length>=3&&x.length<=90))].slice(0,50);
+ const knowledge=approved.slice(0,70).map(x=>
+  [x.name,(x.aliases||[]).length?'дуудлага: '+x.aliases.join(', '):'',
+   x.description?'мэдээлэл: '+x.description:'',
+   x.form?'хэлбэр: '+x.form:'',
+   x.priceMnt==null?'':'үнэ: '+x.priceMnt+'₮',
+   x.stock==null?'':'бүртгэлийн үлдэгдэл: '+x.stock,
+   x.warnings?'анхааруулга: '+x.warnings:''].filter(Boolean).join('; ')).join('\n').slice(0,15500);
+ const prompt=[
+  'Та бол '+String(pharmacyName).slice(0,80)+' байгууллагын Монгол хэлээр эелдэг харилцдаг AI ЭМИЙН КАТАЛОГИЙН туслах.',
+  'Зөвхөн доорх баталгаажуулсан эмийн каталогийн бүтээгдэхүүн, үнэ, үлдэгдэл, хэлбэр, хадгалалт, эм зүйчтэй холбогдох тухай ярь.',
+  'Эмтэй холбоогүй яриа, ерөнхий мэдээ, улс төр, бусад чиглэлийн асуултад хариулахгүй; эелдгээр эмийн нэрээ хэлэхийг хүс.',
+  'Танихгүй эсвэл хоёрдмол дуудлагатай эмийн нэрийг зохиохгүй; дахин тодруулж, дэлгэцэд бичүүлэхийг хүс.',
+  'Каталогт байхгүй эмийн талаар хэлэхгүй. Эмийн тун, жор, онош, орлуулах эм, харилцан үйлчлэлийг бүү санал болго; эм зүйч рүү чиглүүл.',
+  'Ноцтой шинж тэмдэг дурдвал яаралтай эм зүйч/эмнэлгийн тусламж руу чиглүүл; AI эмч биш.',
+  'Мэдээллийг богино, тод, дулаан Монгол хэлээр өг. Дэлгэц дээр эмийн зураг, мэдээллийн карт гарч ирэхийг хэл.',
+  'Авах сонирхолтой бол “Эм зүйчээс лавлах” товчийг санал болго. Захиалга, нөөцлөлт, төлбөр баталгаажсан гэж хэзээ ч бүү хэл.',
+  'Бүтээгдэхүүний баталгаажсан каталог:\n'+(knowledge||'Одоогоор баталгаажсан эм алга. Эмийн нэрийг эм зүйчээс лавлахыг санал болго.')
+ ].join('\n');
+ return {prompt,keywords,catalogCount:approved.length,catalogTruncated:approved.length>70};
+}

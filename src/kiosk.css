@@ -210,3 +210,37 @@ body.immersive-kiosk{overflow:hidden}
 .new-visitor-btn{display:block;margin:5px auto 0;padding:6px 11px;border:1px solid #c4ded0;border-radius:999px;background:#f1faf4;color:#286851;font-size:11px;font-weight:700;cursor:pointer}
 .new-visitor-btn:hover{background:#dbf2e5}
 @media(min-width:1101px) and (min-height:740px){.new-visitor-btn{padding:4px 9px;font-size:10px;margin-top:3px}}
+
+/* Verified medicine spotlight lives INSIDE scrollable chat, never over avatar. */
+.medicine-product-card{width:100%;display:flex;align-items:flex-start;gap:13px;box-sizing:border-box;
+ margin:11px 0;padding:15px;background:linear-gradient(145deg,#f3fff7,#fff);border:1px solid #b6e4c9;
+ border-radius:18px;box-shadow:0 9px 24px #1c684515;min-width:0}
+.medicine-product-photo{flex:0 0 110px;width:110px;height:118px;padding:6px;border:1px solid #daeae0;
+ border-radius:14px;background:#fff;cursor:pointer;display:grid;place-items:center;overflow:hidden}
+.medicine-product-photo img{display:block;width:100%;height:100%;object-fit:contain;border-radius:7px}
+.product-photo-placeholder{display:grid;place-items:center;width:100%;height:100%;border-radius:10px;
+ background:#e7f5ed;color:#3a9d72;font-size:28px}
+.medicine-product-content{min-width:0;flex:1;display:flex;flex-direction:column;gap:6px}
+.medicine-product-name{color:#184737;font-size:16px;line-height:1.3}
+.medicine-product-form{font-size:11px;color:#659080}
+.medicine-product-description{font-size:12px;line-height:1.55;color:#305f4d;margin:0;overflow-wrap:anywhere}
+.medicine-product-facts{display:flex;align-items:center;flex-wrap:wrap;gap:7px}
+.medicine-product-facts>span{font-size:11px;padding:5px 7px;border-radius:8px;background:#e6f3e9;color:#2f664c}
+.medicine-product-price{font-weight:800}
+.medicine-product-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.medicine-product-actions button{cursor:pointer;border-radius:10px;padding:9px 10px;font-size:11px;
+ font-weight:750;border:1px solid #cde6d8;white-space:normal}
+.medicine-product-more{background:#fff;color:#225d47}
+.medicine-product-buy{background:#217c56;color:#fff;border-color:#217c56!important}
+.medicine-detail-photo{max-height:235px;width:100%;max-width:350px;object-fit:contain;display:block;
+ border:1px solid #e4efe7;border-radius:13px;background:#fff;margin:9px auto;padding:9px}
+.medicine-detail-availability{font-size:14px;font-weight:800;color:#21684e}
+.medicine-result-photo{width:44px;height:48px;object-fit:contain;flex:0 0 44px;
+ border-radius:8px;background:#fff;border:1px solid #e1eae3}
+@media(max-width:620px){
+ .medicine-product-card{gap:9px;padding:11px;flex-wrap:wrap}
+ .medicine-product-photo{width:76px;height:88px;flex-basis:76px}
+ .medicine-product-content{flex-basis:calc(100% - 90px)}
+ .medicine-product-name{font-size:14px}
+ .medicine-product-buy{width:100%}
+}
