@@ -182,10 +182,20 @@ const voiceIssueBudget=createVoiceIssueBudget({limit:24});
 async function signedUrl(ctx,key='default'){
   if(!voiceAllowed(voiceEnvironment(ctx),agentId(ctx)))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
   if(!voiceIssueBudget.take(key))throw Object.assign(Error('Дуут холболтын лимит хүрлээ. Түр хүлээгээд дахин оролдоно уу.'),{code:429});
-  const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId(ctx));
-  const result=await external(url,{headers:{'xi-api-key':process.env.ELEVENLABS_API_KEY}});
-  if(typeof result.signed_url!=='string')throw Object.assign(Error('Signed URL олдсонгүй'),{code:502});
-  return {signedUrl:result.signed_url};
+  // PAYG reserves exactly one internal connection allowance per provider-signed
+  // URL. Reserve first to avoid parallel over-spend; refund provider API failures.
+  // A successful issued URL counts as one allowance, not provider usage minutes.
+  const isPayg=!!ctx.slug&&registry.subscription(ctx.slug).plan==='payg';
+  const reservation=isPayg?await registry.consumeCredit(ctx.slug):null;
+  try{
+    const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId(ctx));
+    const result=await external(url,{headers:{'xi-api-key':process.env.ELEVENLABS_API_KEY}});
+    if(typeof result.signed_url!=='string')throw Object.assign(Error('Signed URL олдсонгүй'),{code:502});
+    return {signedUrl:result.signed_url,...(reservation?{payg:{charged:1,remaining:reservation.balance,unit:'signed-url-issuance'}}:{})};
+  }catch(error){
+    if(reservation)try{await registry.refundCredit(ctx.slug,reservation.eventId);}catch(refundError){console.error('PAYG signing refund failed:',refundError.message);}
+    throw error;
+  }
 }
 function textFromResponse(result){
   if(typeof result.output_text==='string')return result.output_text;
@@ -241,11 +251,11 @@ async function handle(req,res){
     // Branch admins may continue managing the catalog after expiration;
     // however no public AI, inventory, tracking or vision endpoints run.
     if(hasBranch&&!entitlement.active&&route.startsWith('/api/')&&!route.startsWith('/api/admin/')&&route!=='/api/health'&&route!=='/api/bootstrap')
-      return respond(res,403,{error:'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
+      return respond(res,entitlement.plan==='payg'?402:403,{error:entitlement.plan==='payg'?'PAYG кредит хүрэлцэхгүй. Админаас кредит цэнэглэнэ үү.':'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
       pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,idleTimeoutSec:ctx.settings.idleTimeoutSec??120,resetOnDisconnect:ctx.settings.resetOnDisconnect!==false,avatarIdleEnabled:ctx.settings.avatarIdleEnabled!==false,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
-      avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
+      avatars:AVATARS,voiceReady:entitlement.active&&voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:ctx===defaultBranch&&ctx.catalog.some(v=>!v.verified),catalogReady:publicMedicines(ctx).some(v=>v.verified)
     });
     if(req.method==='POST'&&route==='/api/device/heartbeat'){
@@ -382,6 +392,24 @@ async function handle(req,res){
       if(route==='/api/admin/audit'&&req.method==='GET'){
         if(hasBranch)return respond(res,200,{events:audit.list({branch:url.searchParams.get('branch')||''}) .filter(v=>v.branch===url.searchParams.get('branch'))});
         return respond(res,200,{events:audit.list({limit:200})});
+      }
+      if(route==='/api/admin/payg'&&req.method==='GET'){
+        const slug=hasBranch?url.searchParams.get('branch'):url.searchParams.get('slug');
+        if(!slug)return respond(res,400,{error:'Байгууллагын код шаардлагатай.'});
+        if(!hasBranch&&!isAdmin(req))return respond(res,401,{error:'Төв админ эрх шаардлагатай.'});
+        return respond(res,200,{payg:registry.paygStatus(slug),history:registry.creditHistory(slug).slice(-50)});
+      }
+      if(route==='/api/admin/branches/payg'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ кредит цэнэглэнэ.'});
+        if(req.method==='PUT'){
+          const input=await bodyJson(req,1600);
+          if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.slug!=='string'||
+             Object.keys(input).some(k=>!['slug','amount','note'].includes(k)))
+            return respond(res,400,{error:'PAYG цэнэглэлтийн мэдээлэл буруу.'});
+          const updated=await registry.grantCredits(input.slug,{amount:input.amount,note:input.note||''});
+          await audit.record('subscription.updated',input.slug);
+          return respond(res,200,{payg:registry.paygStatus(input.slug),transaction:{amount:input.amount,eventId:updated.eventId}});
+        }
       }
       if(route==='/api/admin/branches/subscription'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ эрх сунгана.'});
