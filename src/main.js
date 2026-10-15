@@ -124,7 +124,7 @@ async function showMedicineForSpeech(line){
   try{
     const {item}=await api('/catalog/medicine?id='+encodeURIComponent(mention.id));
     if(serial!==medicineRequestSerial)return;
-    if(!item.verified&&branchSlug)return;
+    if(!item.verified)return; // Never turn unverified demo records into a product offer.
     activeProductCard?.remove();
     activeProductCard=medicineProductCard(item);
     $('conversation').append(activeProductCard);
@@ -381,9 +381,11 @@ async function startVoice(fromWake=false){
     try{
       setStatus('connecting');
       const startedAt=visitorEpoch;
-      const [signed,voiceContext]=await Promise.all([api('/agent/signed-url'),api('/agent/voice-context')]);
+      const voiceContext=await api('/agent/voice-context');
       if(startedAt!==visitorEpoch){voiceStarting=false;return;}
       if(branchSlug&&!voiceContext.catalogCount)throw Error('Баталгаажсан эмийн каталог хараахан байхгүй');
+      const signed=await api('/agent/signed-url');
+      if(startedAt!==visitorEpoch){voiceStarting=false;return;}
       // ElevenLabs Agent Security must permit per-conversation prompt and ASR
       // keyword overrides. If it does not, the catch handler uses the
       // catalog-only local STT route instead of an unscoped live agent.
@@ -415,6 +417,7 @@ async function startVoice(fromWake=false){
           // spoken by the provider, but immediately flags clinical requests.
           if(message.source==='user'&&typeof text==='string'){
             void api('/voice/triage',{method:'POST',body:JSON.stringify({text})}).then(result=>{
+              if(startedAt!==visitorEpoch)return;
               if(result.requiresPharmacist){
                 toast('Энэ асуултад эм зүйч хэрэгтэй. Доорх “Эм зүйч дуудах” товчийг ашиглана уу.');
                 addMessage('assistant','⚠ Мэргэжлийн эм зүйчээс тусламж авна уу. AI эмийн тун, онош, эмчилгээг шийдэхгүй.');
@@ -703,7 +706,7 @@ async function init(){
     $('locationLabel').textContent=config.locationName;
     $('pharmacyNameLabel').textContent=config.pharmacyName;
     document.title=config.pharmacyName+' — AI Kiosk';
-    $('heroDescription').textContent='Эмийн мэдээлэл, үнэ, байршлын талаар асуугаарай.';
+    $('heroDescription').textContent=config.branchSlug&&!config.catalogReady?'Эмийн сангийн баталгаажсан бүтээгдэхүүний мэдээлэл бэлтгэгдэж байна. Эм зүйчээс лавлаарай.':'Эмийн мэдээлэл, үнэ, байршлын талаар асуугаарай.';
     const logo=config.logoData||'';
     for(const id of ['sidebarBrandLogo','branchLogo']){
       const image=$(id);
