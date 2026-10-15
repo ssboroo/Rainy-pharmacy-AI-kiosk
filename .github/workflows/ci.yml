@@ -10,3 +10,5 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npm run check
+      - name: Real Chromium avatar animation smoke test
+        run: node scripts/avatar-browser-smoke.mjs

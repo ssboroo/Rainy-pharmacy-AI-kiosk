@@ -1,4 +1,4 @@
-import {createAvatarIdleDirector} from './avatar-idle.js';
+import {createAvatarIdleDirector,createAvatarAmbientDirector} from './avatar-idle.js';
 
 export const AVATAR_STYLES=Object.freeze({
   nomi:{identity:'pearl-mint-robot',name:'Номи',kind:'robot',tint:'#73dbc3',light:'#f4fffa',body:'#55bfae',deep:'#1e5e6c',eye:'#40ebdb',hair:'#397677'},
@@ -122,12 +122,25 @@ export class IllustratedAvatar25D{
       onGesture:name=>{this.container.dataset.idleGesture=name;},
       onRest:()=>{delete this.container.dataset.idleGesture;}
     });
-    this.idle.setState('loading');
-    this.visibilityChanged=()=>this.idle.setVisible(!document.hidden);
+    this.ambient=createAvatarAmbientDirector({
+      onBlink:closed=>{
+        if(closed)this.container.dataset.ambientBlink='1';
+        else delete this.container.dataset.ambientBlink;
+      },
+      onGaze:direction=>{this.container.dataset.ambientEye=direction;}
+    });
+    this.visibilityChanged=()=>{
+      this.idle.setVisible(!document.hidden);
+      this.ambient.setVisible(!document.hidden);
+    };
     document.addEventListener('visibilitychange',this.visibilityChanged);
     this.motionQuery=window.matchMedia?.('(prefers-reduced-motion: reduce)');
     this.idleEnabled=true;
-    this.motionChanged=()=>this.idle.setReducedMotion(!this.idleEnabled||!!this.motionQuery?.matches);
+    this.motionChanged=()=>{
+      const reduced=!this.idleEnabled||!!this.motionQuery?.matches;
+      this.idle.setReducedMotion(reduced);
+      this.ambient.setReducedMotion(reduced);
+    };
     this.motionQuery?.addEventListener?.('change',this.motionChanged);
     this.motionChanged();
     this.visibilityChanged();
@@ -144,7 +157,13 @@ export class IllustratedAvatar25D{
     this.tongue=this.container.querySelector('.avatar25-mouth-tongue');
     this.idle.touch();this.setState(this.state);return true;
   }
-  setState(state){this.state=state;this.container.dataset.expression=expressionFor(state);this.idle.setState(state);this.setLevel(this.level);}
+  setState(state){
+    this.state=state;
+    this.container.dataset.expression=expressionFor(state);
+    this.idle.setState(state);
+    this.ambient.setState(state);
+    this.setLevel(this.level);
+  }
   notifyActivity(){this.idle.touch();}
   setIdleEnabled(enabled){this.idleEnabled=enabled!==false;this.motionChanged();}
   setLevel(input){
@@ -161,7 +180,6 @@ export class IllustratedAvatar25D{
   }
   onPointer(e){
     if(!e.isPrimary||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
-    this.notifyActivity();
     const rect=this.container.getBoundingClientRect();
     if(!rect.width||!rect.height)return;
     const x=Math.max(-1,Math.min(1,2*(e.clientX-rect.left)/rect.width-1));
@@ -173,6 +191,7 @@ export class IllustratedAvatar25D{
   resize(){}
   dispose(){
     this.idle.dispose();
+    this.ambient.dispose();
     document.removeEventListener('visibilitychange',this.visibilityChanged);
     this.motionQuery?.removeEventListener?.('change',this.motionChanged);
     this.container.removeEventListener('pointermove',this.move);

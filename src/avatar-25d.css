@@ -265,3 +265,37 @@
  #avatar25 .avatar25-idle-arms,
  #avatar25 .avatar25-idle-yawn-mouth{opacity:0!important}
 }
+
+
+/* Reliable micro-expression engine — classes used by every 2.5D avatar.
+   The old fixed 5.8s blink was overwritten by JS-triggered irregular blinks;
+   pupils drift independently and remain alive during AI conversation. */
+#avatar25 .avatar25-eyelid{
+ animation:none;
+ opacity:0;
+ transform:scaleY(1);
+ /* Crisp 170ms blink: avoid transitions racing the timer/frame budget. */
+}
+#avatar25[data-ambient-blink="1"] .avatar25-eyelid{
+ opacity:1;
+ transform:scaleY(23);
+}
+#avatar25 .avatar25-gaze{
+ transform:translate(0px,0px);
+ transition:transform 380ms cubic-bezier(.18,.65,.3,1);
+}
+#avatar25[data-ambient-eye="left"] .avatar25-gaze{transform:translate(-9px,-1px)}
+#avatar25[data-ambient-eye="right"] .avatar25-gaze{transform:translate(9px,-1px)}
+#avatar25[data-ambient-eye="up"] .avatar25-gaze{transform:translate(0,-6px)}
+#avatar25[data-ambient-eye="down"] .avatar25-gaze{transform:translate(0,5px)}
+#avatar25[data-ambient-eye="center"] .avatar25-gaze{transform:translate(0,0)}
+/* Idle gestures temporarily override ambient gaze transforms without losing
+   the underlying JS direction, then return to it after the gesture. */
+#avatar25[data-idle-gesture="glance"] .avatar25-gaze{animation:rainy-idle-glance 1.9s ease-in-out both}
+#avatar25[data-idle-gesture="curious"] .avatar25-gaze{animation:rainy-idle-look-up 2.3s ease-in-out both}
+#avatar25[data-idle-gesture="drowsy"] .avatar25-eyelid{transition:none}
+#avatar25[data-idle-gesture="yawn"] .avatar25-eyelid{transition:none}
+@media(prefers-reduced-motion:reduce){
+ #avatar25[data-ambient-blink] .avatar25-eyelid{opacity:0!important;transform:scaleY(1)!important}
+ #avatar25[data-ambient-eye] .avatar25-gaze{transform:none!important}
+}

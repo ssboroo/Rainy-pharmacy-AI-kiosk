@@ -573,6 +573,10 @@ function bindSidebarDrawer(){
   window.addEventListener('resize',()=>{if(!query.matches)closeSidebarDrawer();});
 }
 function wire(){
+  // Kiosk interaction counts only deliberate taps/keystrokes, not passive
+  // pointer movement that can indefinitely suppress idle gestures.
+  document.addEventListener('pointerdown',activity,{passive:true});
+  document.addEventListener('keydown',activity);
   bindSidebarDrawer();
   $('medicineLiveClose').onclick=clearMedicineCard;
   $('homeNav').onclick=()=>{closeModal();window.scrollTo({top:0,behavior:'smooth'});};

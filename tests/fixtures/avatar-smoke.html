@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="mn"><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#d6f2e9}#avatar25{width:680px;height:680px;position:relative;--look-x:0px;--look-y:0px;--head-turn:0deg}</style>
+<link rel="stylesheet" href="/src/avatar-25d.css"></head>
+<body data-smoke="pending"><div id="avatar25"></div>
+<script type="module">
+import {IllustratedAvatar25D,AVATAR_STYLES} from '/src/avatar-25d.js';
+const out=document.body;
+try{
+ const avatar=new IllustratedAvatar25D(document.getElementById('avatar25'));
+ avatar.setState('ready');
+ avatar.setIdleEnabled(false); // isolate computed CSS from timer scheduling during smoke test
+ for(const id of Object.keys(AVATAR_STYLES)){
+   avatar.setAvatar(id);
+   const layer=document.getElementById('avatar25');
+   const svg=layer.querySelector('svg.rainy-2d5-portrait');
+   if(!svg||svg.getBBox().width<300)throw Error(id+': SVG missing or has invalid geometry');
+   const eyelid=layer.querySelector('.avatar25-eyelid');
+   const gaze=layer.querySelector('.avatar25-gaze');
+   if(!eyelid||!gaze)throw Error(id+': eye layers missing');
+   layer.dataset.ambientBlink='1';
+   await new Promise(resolve=>setTimeout(resolve,190));
+   if(parseFloat(getComputedStyle(eyelid).opacity)<.5)throw Error(id+': blink not visible');
+   delete layer.dataset.ambientBlink;
+   // Headless virtual clock may not tick compositor transitions. Disable the
+   // smooth transition only in this selector-binding assertion, not in the app.
+   gaze.style.transition='none';
+   layer.dataset.ambientEye='left';
+   await new Promise(resolve=>setTimeout(resolve,460));
+   const left=getComputedStyle(gaze).transform;
+   layer.dataset.ambientEye='right';
+   await new Promise(resolve=>setTimeout(resolve,460));
+   if(left===getComputedStyle(gaze).transform)throw Error(id+': gaze CSS targets did not differ');
+   gaze.style.removeProperty('transition');
+   layer.dataset.idleGesture='yawn';
+   if(!getComputedStyle(layer.querySelector('.avatar25-idle-yawn-mouth')).animationName.includes('rainy-idle-yawn-mouth'))throw Error(id+': yawn animation not applied');
+   layer.dataset.idleGesture='stretch';
+   if(!getComputedStyle(layer.querySelector('.avatar25-idle-arm-left')).animationName.includes('rainy-idle-arm-left'))throw Error(id+': stretch animation not applied');
+   delete layer.dataset.idleGesture;
+   layer.dataset.ambientEye='center';
+ }
+ avatar.dispose();
+ out.dataset.smoke='pass';
+ out.dataset.checked=Object.keys(AVATAR_STYLES).join(',');
+}catch(e){out.dataset.smoke='fail';out.dataset.error=e.stack||String(e);console.error(e);}
+</script></body></html>
