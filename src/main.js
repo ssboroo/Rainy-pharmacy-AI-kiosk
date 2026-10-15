@@ -529,6 +529,7 @@ async function loadPremium2D5(){
   stage.append(layer);
   try{
     avatar25=new IllustratedAvatar25D(layer);
+    avatar25.setIdleEnabled(config?.avatarIdleEnabled!==false);
     avatar25.setAvatar(selected);
     avatar25.setState(currentVoiceState);
     stage.classList.add('avatar-25d-ready');
