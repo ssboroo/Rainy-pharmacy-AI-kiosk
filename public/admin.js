@@ -353,6 +353,17 @@ async function refreshOrganization(){
   }
   $('slaStatus').textContent='Төхөөрөмж: '+sla.deviceCount+' · Онлайн: '+sla.online+' · Офлайн: '+sla.offline+' · Гэрээний uptime: хэмжигдээгүй';
   $('backupStatus').textContent='Хадгалсан хуулбар: '+backup.files.length+' · Сүүлийн: '+(backup.files[0]||'Байхгүй')+' · Off-site: үгүй';
+  const download=$('backupDownload');
+  download.hidden=!backup.files.length;
+  download.onclick=async()=>{
+    try{
+      const result=await api('organization/backups/file?filename='+encodeURIComponent(backup.files[0]));
+      const blob=new Blob([JSON.stringify(result.payload,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;link.download=backup.files[0];link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }catch(err){show('Backup татахад алдаа: '+err.message);}
+  };
   const log=$('operationsAudit');log.replaceChildren();
   for(const item of audit.events.slice(0,18)){
    const div=document.createElement('div');div.className='ops-audit-item';
