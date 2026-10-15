@@ -1,0 +1,28 @@
+name: Independent SLA Probe
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  external-http-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check production health independently of Railway
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://rainy-pharmacy-ai-kiosk-production.up.railway.app/api/health"
+          code=$(curl --silent --show-error --location --max-time 20 --output /tmp/health.json --write-out '%{http_code}' "$url")
+          echo "Measured UTC: $(date -u +%FT%TZ)"
+          echo "HTTP status: $code"
+          test "$code" = "200"
+          python3 - <<'PY'
+          import json
+          result=json.load(open('/tmp/health.json'))
+          assert isinstance(result,dict), "invalid health JSON"
+          print("Health response parsed")
+          PY
+          echo "Healthy: HTTP 200"

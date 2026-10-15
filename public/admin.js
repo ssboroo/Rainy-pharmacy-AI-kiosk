@@ -352,7 +352,12 @@ async function refreshOrganization(){
    table.append(tr);
   }
   $('slaStatus').textContent='Төхөөрөмж: '+sla.deviceCount+' · Онлайн: '+sla.online+' · Офлайн: '+sla.offline+' · Гэрээний uptime: хэмжигдээгүй';
-  $('backupStatus').textContent='Хадгалсан хуулбар: '+backup.files.length+' · Сүүлийн: '+(backup.files[0]||'Байхгүй')+' · Off-site: үгүй';
+  $('backupStatus').textContent='Хадгалсан local хуулбар: '+backup.files.length+' · Сүүлийн: '+(backup.files[0]||'Байхгүй')+' · Off-site шалгасан: '+(backup.offsiteVerified?'Тийм':'Үгүй');
+  const storage=await api('organization/storage');
+  $('storageStatus').textContent='PostgreSQL: '+(storage.postgresMirrorConnected?'Холбогдсон (давхар хадгалалт)':'Баталгаажаагүй')+
+    '\nOff-site S3: '+(storage.offsiteLastVerifiedAt?'Шифрлэсэн backup сэргээн унших тест: '+storage.offsiteLastVerifiedAt:'Тест баталгаажаагүй')+
+    '\nАнхдагч өгөгдлийн эх үүсвэр: одоогийн persistent volume';
+  $('backupModeExplanation').textContent='Шинэ backup нь Railway-ээс тусдаа bucket-д AES-256-GCM шифрлэн хадгалагдаж, татан тайлж шалгадаг. Бүрэн PostgreSQL cutover болон алдагдсан production-ийг автоматаар сэргээх боломж хараахан идэвхжээгүй.';
   const download=$('backupDownload');
   download.hidden=!backup.files.length;
   download.onclick=async()=>{
