@@ -1,5 +1,6 @@
 import {Conversation} from '@elevenlabs/client';
 import {ELEVENLABS_WORKLET_PATHS} from './voice-worklets.js';
+import {findMedicineMention} from './medicine-panel.js';
 import './style.css';
 import './kiosk.css';
 import './avatar-25d.css';
@@ -7,6 +8,9 @@ import {IllustratedAvatar25D} from './avatar-25d.js';
 import {WakeGreetingListener} from './kiosk-voice.js';
 import {toneForState} from './kiosk-policy.js';
 const $=id=>document.getElementById(id);
+const branchSlug=new URLSearchParams(window.location.search).get('branch')||'';
+const scopedPath=route=>route+(branchSlug?(route.includes('?')?'&':'?')+'branch='+encodeURIComponent(branchSlug):'');
+let medicineNameIndex=[],medicineLastId='',medicineRequestSerial=0;
 let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=null,resetTimer=null;
 let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
 let lastWakeAt=0;
@@ -16,7 +20,7 @@ const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
 async function api(path,opts={}){
-  const response=await fetch('/api'+path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+  const response=await fetch(scopedPath('/api'+path),{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
   const data=await response.json();
   if(!response.ok)throw Error(data.error||'Сервертэй холбогдож чадсангүй.');
   return data;
@@ -28,7 +32,7 @@ function toast(message){
 // Privacy by design: only a known event enum travels to the analytics endpoint.
 // No question text, medicine names, browser identifiers, audio, user info or IP metadata.
 function trackAnalytics(event){
-  fetch('/api/analytics/event',{
+  fetch(scopedPath('/api/analytics/event'),{
     method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({event}),cache:'no-store',keepalive:true
   }).catch(()=>{}); // usage statistics must never interrupt pharmacy assistance
@@ -44,13 +48,45 @@ function activity(){
   resetTimer=setTimeout(async()=>{
     analyticsSessionRecorded=false;
     await stopVoice();
+    clearMedicineCard();
     $('conversation').replaceChildren();
     addMessage('assistant',config?.greeting||'Сайн байна уу!');
     $('questionInput').value='';
     closeModal();
   },120000);
 }
+async function loadMedicineIndex(){
+  try{
+    const result=await api('/catalog/names');
+    medicineNameIndex=Array.isArray(result.items)?result.items:[];
+  }catch{medicineNameIndex=[];}
+}
+function clearMedicineCard(){
+  medicineRequestSerial++;
+  medicineLastId='';
+  $('medicineLiveCard').hidden=true;
+}
+async function showMedicineForSpeech(line){
+  if(typeof line!=='string'||!medicineNameIndex.length)return;
+  const mention=findMedicineMention(line,medicineNameIndex);
+  if(!mention)return;
+  if(mention.id===medicineLastId&&!$('medicineLiveCard').hidden)return;
+  medicineLastId=mention.id;
+  const serial=++medicineRequestSerial;
+  try{
+    const {item}=await api('/catalog/medicine?id='+encodeURIComponent(mention.id));
+    if(serial!==medicineRequestSerial)return;
+    $('medicineLiveName').textContent=item.name;
+    $('medicineLiveSource').textContent=item.verified?'Каталогийн баталгаажсан бүртгэл':'Туршилтын / баталгаажаагүй бүртгэл';
+    $('medicineLiveForm').textContent=[item.category,item.form].filter(Boolean).join(' · ');
+    $('medicineLiveDescription').textContent=item.description||'Ерөнхий тайлбар байхгүй. Эм зүйчээс лавлана уу.';
+    $('medicineLiveWarning').textContent=item.warnings?'⚠ '+item.warnings:'⚠ Хэрэглэх заавар, тунг эм зүйчээс лавлана уу.';
+    $('medicineLiveCard').hidden=false;
+    $('medicineLiveCard').classList.toggle('is-unverified',!item.verified);
+  }catch{if(serial===medicineRequestSerial)clearMedicineCard();}
+}
 function addMessage(role,text){
+  if(role==='user'||role==='assistant')void showMedicineForSpeech(text);
   const item=document.createElement('div');item.className='message '+role;
   const mark=document.createElement('span');mark.className='message-mark';mark.textContent=role==='assistant'?'✦':'●';
   const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=text;
@@ -474,6 +510,7 @@ async function loadPremium2D5(){
   }
 }
 function wire(){
+  $('medicineLiveClose').onclick=clearMedicineCard;
   $('homeNav').onclick=()=>{closeModal();window.scrollTo({top:0,behavior:'smooth'});};
   $('catalogNav').onclick=catalogModal;$('medicineAction').onclick=catalogModal;
   $('cameraNav').onclick=cameraModal;$('cameraAction').onclick=cameraModal;
@@ -505,11 +542,21 @@ async function init(){
     $('pharmacyNameLabel').textContent=config.pharmacyName;
     document.title=config.pharmacyName+' — AI Kiosk';
     $('heroDescription').textContent='Эмийн мэдээлэл, үнэ, байршлын талаар асуугаарай.';
+    const logo=config.logoData||'';
+    for(const id of ['sidebarBrandLogo','branchLogo']){
+      const image=$(id);
+      image.hidden=!logo;
+      if(logo)image.src=logo;
+      else image.removeAttribute('src');
+    }
+    document.querySelector('.brand-mark').href=branchSlug?'/?branch='+encodeURIComponent(branchSlug):'/';
+    document.querySelector('.admin-link').href=branchSlug?'/admin.html?branch='+encodeURIComponent(branchSlug):'/admin.html';
     $('greetingBubble').textContent=config.greeting;
     $('demoBanner').hidden=!config.demoMode;
     $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent идэвхтэй · Микрофоноо асаана уу':config.voiceConfigured?'Agent ID / API key тохируулсан. Эмнэлзүйн зөвшөөрөл дутуу — админаас шалгана уу.':'Browser дуут танилт / бичгээр асуулт · ElevenLabs Agent холболт дутуу';
     renderAvatars();
     await loadPremium2D5();
+    await loadMedicineIndex();
     makeWakeListener();
     if(localStorage.getItem(KIOSK_STORAGE_KEY)==='1'){
       document.body.classList.add('immersive-kiosk');
