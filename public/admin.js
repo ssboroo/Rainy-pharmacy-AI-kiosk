@@ -526,6 +526,13 @@ function downloadCatalogTemplate(){
 }
 $('catalogCsvTemplate').onclick=downloadCatalogTemplate;
 $('ownerCatalogTemplate').onclick=downloadCatalogTemplate;
+$('ownerCatalogBlank').onclick=()=>{
+ const slug=$('ownerCatalogSlug').value;
+ if(!slug){show('Эхлээд байгууллага сонгоно уу.');return;}
+ $('ownerCatalogJSON').value='[]';
+ $('ownerCatalogJSON').dataset.loadedSlug=slug;
+ show('Хоосон каталог бэлтгэлээ. Хадгалах товч дараагүй тул хуучин мэдээлэл өөрчлөгдөөгүй.');
+};
 $('ownerCatalogLoad').onclick=async()=>{
  const slug=$('ownerCatalogSlug').value;
  if(!slug){show('Байгууллага сонгоно уу.');return;}
