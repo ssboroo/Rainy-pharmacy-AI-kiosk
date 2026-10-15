@@ -21,6 +21,19 @@
       <div id="newBranchLinks"></div>
     </div>
     <div id="branchList" class="branch-list"></div>
+    <form id="ownerBranchConfig" class="subscription-panel">
+      <h3>Байгууллагын AI холболт, session тохиргоо</h3>
+      <p>Төв админ байгууллагаа сонгож Agent ID, AI нэр болон харилцан ярианы автоматаар цэвэрлэх тохиргоог шууд удирдана. API key нь Railway серверийн нууц тохиргоонд байна.</p>
+      <div class="grid">
+        <label>Байгууллага<select id="ownerConfigSlug" required><option value="">Салбар сонгох</option></select></label>
+        <label>Байгууллагын нэр<input id="ownerConfigPharmacy" maxlength="80" required/></label>
+        <label>AI туслахын нэр<input id="ownerConfigAssistant" maxlength="80" required/></label>
+        <label>ElevenLabs Agent ID<input id="ownerConfigAgent" placeholder="agent_..." maxlength="120"/></label>
+        <label>Яриа идэвхгүй байвал дуусах секунд<input type="number" id="ownerConfigIdle" min="30" max="900" value="120"/></label>
+        <label>Voice тасрахад шинэ session эхлүүлэх<input type="checkbox" id="ownerConfigDisconnect" checked/></label>
+      </div>
+      <div class="inline"><button type="button" id="ownerConfigLoad">Тохиргоо унших</button><button type="submit">Байгууллагын тохиргоо хадгалах</button></div>
+    </form>
     <form id="subscriptionForm" class="subscription-panel">
       <h3>Хугацаатай эрх удирдах</h3>
       <p>Төв админ гараар нээнэ, сунгана эсвэл зогсооно. Онлайн төлбөр шаардахгүй.</p>

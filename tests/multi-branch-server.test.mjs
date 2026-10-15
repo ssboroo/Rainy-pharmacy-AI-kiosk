@@ -48,6 +48,17 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     const two=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'two-branch',name:'Эмийн сан 2'}});
     assert.equal(one.status,201);assert.equal(two.status,201);
     const key1=one.data.branch.adminToken,key2=two.data.branch.adminToken;
+    const ownerCfg=await call('/api/admin/branches/config?slug=one-branch',{auth:token});
+    assert.equal(ownerCfg.status,200);
+    assert.equal(ownerCfg.data.settings.idleTimeoutSec,120);
+    assert.equal((await call('/api/admin/branches/config?slug=one-branch',{auth:key1})).status,401);
+    assert.equal((await call('/api/admin/branches/config?slug=one-branch')).status,401);
+    const savedOwnerCfg=await call('/api/admin/branches/config',{method:'PUT',auth:token,body:{slug:'one-branch',settings:{agentId:'agent_owner_one',idleTimeoutSec:75,resetOnDisconnect:false}}});
+    assert.equal(savedOwnerCfg.status,200);
+    assert.equal(savedOwnerCfg.data.settings.agentId,'agent_owner_one');
+    assert.equal((await call('/api/admin/branches/config?slug=two-branch',{auth:token})).data.settings.agentId,'');
+    assert.equal((await call('/api/admin/branches/config',{method:'PUT',auth:token,body:{slug:'one-branch',settings:{ELEVENLABS_API_KEY:'secret'}}})).status,400);
+
     assert.equal(one.data.branch.loginName,'admin');
     assert.ok(one.data.branch.loginCode.length>=32);
     const loginAuth='Basic '+Buffer.from('admin:'+one.data.branch.loginCode).toString('base64');
@@ -55,7 +66,7 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal((await call('/api/admin/settings?branch=two-branch',{authHeader:loginAuth})).status,401);
     assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:'Basic '+Buffer.from('admin:wrong').toString('base64')})).status,401);
     assert.equal((await call('/api/admin/settings',{authHeader:loginAuth})).status,401);
-    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,120);
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,75);
     const idle=await call('/api/admin/settings?branch=one-branch',{method:'PUT',authHeader:loginAuth,body:{idleTimeoutSec:45,resetOnDisconnect:false}});
     assert.equal(idle.status,200);
     assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,45);

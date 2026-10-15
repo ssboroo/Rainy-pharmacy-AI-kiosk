@@ -170,6 +170,11 @@ async function loadBranches(){
     if(!data.branches.length){
       const p=document.createElement('p');p.textContent='Одоогоор нэмэлт салбар байхгүй.';target.append(p);
     }
+    const ownerSelect=$('ownerConfigSlug');
+    const selectedOwner=ownerSelect.value;
+    ownerSelect.replaceChildren(new Option('Салбар сонгох',''));
+    for(const row of data.branches)ownerSelect.add(new Option(row.name+' · '+row.slug,row.slug));
+    if(data.branches.some(row=>row.slug===selectedOwner))ownerSelect.value=selectedOwner;
     for(const item of data.branches){
       const row=document.createElement('div');row.className='branch-list-item';
       const text=document.createElement('div');
@@ -462,4 +467,35 @@ $('integrationAgentSave').onclick=async()=>{
   await refreshVoiceStatus();
   show('ElevenLabs Agent ID хадгалагдлаа. API түлхүүр серверийн нууц тохиргоонд хадгалагдана.');
  }catch(error){show('Agent холболт: '+error.message);}finally{button.disabled=false;}
+};
+
+async function loadOwnerBranchConfig(){
+ const slug=$('ownerConfigSlug').value;
+ if(!slug){show('Эхлээд байгууллага сонгоно уу.');return;}
+ try{
+  const result=await api('branches/config?slug='+encodeURIComponent(slug));
+  const settings=result.settings;
+  $('ownerConfigPharmacy').value=settings.pharmacyName||'';
+  $('ownerConfigAssistant').value=settings.assistantName||'';
+  $('ownerConfigAgent').value=settings.agentId||'';
+  $('ownerConfigIdle').value=settings.idleTimeoutSec??120;
+  $('ownerConfigDisconnect').checked=settings.resetOnDisconnect!==false;
+  show('Байгууллагын тохиргоог уншлаа.');
+ }catch(error){show('Тохиргоо унших алдаа: '+error.message);}
+}
+$('ownerConfigLoad').onclick=loadOwnerBranchConfig;
+$('ownerConfigSlug').onchange=loadOwnerBranchConfig;
+$('ownerBranchConfig').onsubmit=async event=>{
+ event.preventDefault();
+ const slug=$('ownerConfigSlug').value;
+ if(!slug){show('Байгууллага сонгоно уу.');return;}
+ const settings={
+  pharmacyName:$('ownerConfigPharmacy').value.trim(),
+  assistantName:$('ownerConfigAssistant').value.trim(),
+  agentId:$('ownerConfigAgent').value.trim(),
+  idleTimeoutSec:Number($('ownerConfigIdle').value),
+  resetOnDisconnect:$('ownerConfigDisconnect').checked
+ };
+ try{await api('branches/config','PUT',{slug,settings});show('Байгууллагын AI тохиргоо хадгалагдлаа. Киоск дахин ачаалахад хэрэгжинэ.');}
+ catch(error){show('Байгууллагын тохиргооны алдаа: '+error.message);}
 };

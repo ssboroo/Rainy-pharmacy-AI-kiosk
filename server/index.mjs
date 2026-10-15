@@ -378,6 +378,34 @@ async function handle(req,res){
           return respond(res,200,{subscription:result});
         }
       }
+      // Platform owner can configure a particular organization without borrowing its password.
+      // Explicit branch slug, small allowlist and server-side owner authorization.
+      if(route==='/api/admin/branches/config'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        if(req.method==='GET'){
+          const slug=url.searchParams.get('slug');
+          const branch=registry.get(slug);
+          return respond(res,200,{slug,settings:{
+            pharmacyName:branch.settings.pharmacyName,assistantName:branch.settings.assistantName,
+            agentId:branch.settings.agentId,idleTimeoutSec:branch.settings.idleTimeoutSec??120,
+            resetOnDisconnect:branch.settings.resetOnDisconnect!==false
+          }});
+        }
+        if(req.method==='PUT'){
+          const input=await bodyJson(req,2400);
+          if(!input||typeof input.slug!=='string'||!input.settings||typeof input.settings!=='object'||
+             Array.isArray(input.settings)||Object.keys(input.settings).some(k=>!['pharmacyName','assistantName','agentId','idleTimeoutSec','resetOnDisconnect'].includes(k)))
+            return respond(res,400,{error:'Байгууллагын тохиргоо буруу.'});
+          const branch=registry.get(input.slug);
+          const settings=await branch.updateSettings(input.settings);
+          await audit.record('settings.updated',input.slug);
+          return respond(res,200,{slug:input.slug,settings:{
+            pharmacyName:settings.pharmacyName,assistantName:settings.assistantName,
+            agentId:settings.agentId,idleTimeoutSec:settings.idleTimeoutSec??120,
+            resetOnDisconnect:settings.resetOnDisconnect!==false
+          }});
+        }
+      }
       if(route==='/api/admin/branches'){
         if(hasBranch)return respond(res,403,{error:'Салбарын эрхээр бусад салбарын мэдээлэл харах боломжгүй.'});
         if(req.method==='GET')return respond(res,200,{branches:registry.list()});
