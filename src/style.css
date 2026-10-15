@@ -136,3 +136,35 @@ button{touch-action:manipulation}button:focus-visible,input:focus-visible,a:focu
 @media(min-width:761px) and (max-width:1250px){.avatar-heading{max-width:120px;min-width:100px}.avatar-text small{display:none}}
 @media(max-width:760px){.avatar-section{display:block;padding:10px!important}.avatar-heading{max-width:none;margin:0 0 8px!important}.avatar-list{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}.avatar-option{height:52px;max-height:52px}}
 @media(max-width:420px){.avatar-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+
+/* Live character refinement — Mira: soft human-inspired pharmacy assistant. */
+.portrait.mira{--shell:#ffe8dc;--body:#8e79ba;--detail:#513b61;--blush:#f5a7aa}
+.portrait.mira .avatar-face{
+ top:36px;left:46px;width:174px;height:165px;
+ border:7px solid #503950;border-radius:85px 85px 77px 77px;
+ background:radial-gradient(ellipse at 45% 73%,#fff4e8 0%,#ffe6dd 68%,#f8cbbf 100%);
+ box-shadow:inset 0 -10px 18px #eeaeb02c,0 15px 32px #674a7c3b;
+ overflow:visible
+}
+.portrait.mira .avatar-face:before{
+ content:"";position:absolute;z-index:1;top:-24px;left:-12px;
+ width:188px;height:83px;border-radius:82% 75% 30% 28%;
+ background:linear-gradient(145deg,#3e304a,#6b4a72 58%,#4a354f);
+ clip-path:polygon(0 0,100% 0,100% 72%,79% 54%,63% 73%,46% 57%,26% 76%,8% 63%,0 90%);
+ box-shadow:0 2px 8px #36243c3b;pointer-events:none
+}
+.portrait.mira .avatar-face:after{content:"";position:absolute;top:15px;left:12px;width:24px;height:94px;border-radius:18px;background:linear-gradient(90deg,#3d304b,#694a71);transform:rotate(8deg);filter:none;z-index:1}
+.portrait.mira .avatar-eye{top:79px;width:24px;height:30px;border-radius:50%;background:#47304d;box-shadow:0 2px 0 #765c7a}
+.portrait.mira .eye-left{left:34px}.portrait.mira .eye-right{right:33px}
+.portrait.mira .avatar-eye:after{width:9px;height:10px;background:#fff;left:5px;top:4px}
+.portrait.mira .avatar-brow{top:66px;left:39px;background:#6d4d65;opacity:.45;width:87px;height:3px}
+.portrait.mira .avatar-blush{top:111px;width:30px;height:13px;filter:blur(3px);opacity:.65}
+.portrait.mira .avatar-mouth{top:119px;left:77px;width:18px;height:9px;border:2px solid #a45f70;border-top:0;background:transparent}
+.portrait.mira .avatar-neck{background:#f6c9b6}
+.portrait.mira .avatar-body{background:linear-gradient(125deg,#fff 0%,#f7f3ff 55%,#c8b7e5 100%);border:7px solid #806c9d;box-shadow:inset 0 12px 20px #ffffffcc,0 18px 25px #73548130}
+.portrait.mira .chest-glyph{color:#8865b6}
+.portrait.mira .avatar-antenna,.portrait.mira .avatar-ears{display:none}
+.portrait.mira.speaking .avatar-mouth{top:116px!important;left:50%!important;border-color:#7e536b!important;background:#aa6c82!important}
+.avatar-thumbnail.mira{background:linear-gradient(145deg,#f5eaff,#e8d9f6)!important}
+.avatar-thumbnail.mira .thumb-head{border-color:#72557d;background:#ffe8dd}
+.avatar-option[data-avatar="mira"].selected{border-color:#a889d1;box-shadow:inset 0 0 0 1px #a889d1;background:#f8f1ff}
