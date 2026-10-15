@@ -35,10 +35,13 @@ export function subscriptionState(subscription,now=new Date()){
   const record=subscription&&typeof subscription==='object'?subscription:{};
   const status=record.status==='active'||record.status==='paused'?record.status:'pending';
   const expiresAt=typeof record.expiresAt==='string'?record.expiresAt:null;
-  const active=status==='active'&&!!expiresAt&&Number.isFinite(Date.parse(expiresAt))&&Date.parse(expiresAt)>now.getTime();
-  return {status:active?'active':status==='paused'?'paused':status==='pending'?'pending':'expired',active,
-    expiresAt,plan:typeof record.plan==='string'?record.plan:'starter',
-    daysLeft:active?Math.max(0,Math.ceil((Date.parse(expiresAt)-now.getTime())/86400000)):0};
+  const payg=record.plan==='payg';
+  const credits=Number.isSafeInteger(record.credits)&&record.credits>=0?record.credits:0;
+  const active=payg?(status==='active'&&credits>0):(status==='active'&&!!expiresAt&&Number.isFinite(Date.parse(expiresAt))&&Date.parse(expiresAt)>now.getTime());
+  return {status:payg?(status==='paused'?'paused':status!=='active'?'pending':active?'active':'out-of-credits'):active?'active':status==='paused'?'paused':status==='pending'?'pending':'expired',active,
+    expiresAt:payg?null:expiresAt,plan:typeof record.plan==='string'?record.plan:'starter',
+    credits:payg?credits:null,creditUnit:payg?'signed-url-issuance':null,
+    daysLeft:payg?null:active?Math.max(0,Math.ceil((Date.parse(expiresAt)-now.getTime())/86400000)):0};
 }
 
 
@@ -130,11 +133,11 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     if(!row||!row.loginName||!row.loginSalt||!row.loginHash||row.loginName!==loginName)return false;
     return timingSafeEqual(Buffer.from(safeHash(code,row.loginSalt),'hex'),Buffer.from(row.loginHash,'hex'));
   }
-  function list(){return [...registry.values()].map(({slug,name,createdAt,subscription,loginName})=>({slug,name,createdAt,loginName:loginName||null,subscription:subscriptionState(subscription)}));}
+  function list(){return [...registry.values()].map(({slug,name,createdAt,subscription,loginName,payg})=>({slug,name,createdAt,loginName:loginName||null,subscription:subscriptionState(subscription?{...subscription,credits:payg?.balance??0}:subscription)}));}
   function subscription(slug,now=new Date()){
     const row=registry.get(validateBranchSlug(slug));
     if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
-    return subscriptionState(row.subscription,now);
+    return subscriptionState(row.subscription?{...row.subscription,credits:row.payg?.balance??0}:row.subscription,now);
   }
   function history(slug){
     const row=registry.get(validateBranchSlug(slug));
@@ -145,7 +148,7 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     validateBranchSlug(slug);
     if(!input||typeof input!=='object'||Array.isArray(input))throw Object.assign(Error('Эрхийн хүсэлт буруу.'),{code:400});
     if(input.status!=null&&!['active','paused'].includes(input.status))throw Object.assign(Error('Эрхийн төлөв буруу.'),{code:400});
-    if(input.plan!=null&&!['starter','pro','enterprise'].includes(input.plan))throw Object.assign(Error('Багц буруу.'),{code:400});
+    if(input.plan!=null&&!['starter','pro','enterprise','payg'].includes(input.plan))throw Object.assign(Error('Багц буруу.'),{code:400});
     if(input.note!=null&&(typeof input.note!=='string'||input.note.length>160))throw Object.assign(Error('Тэмдэглэл хэт урт.'),{code:400});
     const expiresAt=input.expiresAt!=null?parseEndDate(input.expiresAt):null;
     const work=writes.catch(()=>{}).then(async()=>{
@@ -154,18 +157,61 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
       const old=row.subscription||{status:'pending',expiresAt:null,plan:'starter'};
       const next={status:input.status||'active',plan:input.plan||old.plan||'starter',
         expiresAt:expiresAt||old.expiresAt||null,updatedAt:at};
-      if(next.status==='active'&&!next.expiresAt)throw Object.assign(Error('Эрхийн дуусах огноо шаардлагатай.'),{code:400});
+      if(next.status==='active'&&next.plan!=='payg'&&!next.expiresAt)throw Object.assign(Error('Эрхийн дуусах огноо шаардлагатай.'),{code:400});
       const event={at,action:next.status==='paused'?'paused':'granted',status:next.status,
         plan:next.plan,expiresAt:next.expiresAt,note:typeof input.note==='string'?input.note.trim():''};
       const replacement={...row,subscription:next,subscriptionHistory:[...(row.subscriptionHistory||[]),event].slice(-150)};
       const all=[...registry.values()].map(v=>v.slug===slug?replacement:v);
       await atomicWrite(registryFile,{version:1,branches:all});
       registry.set(slug,replacement);
-      return subscriptionState(next,new Date(at));
+      return subscriptionState({...next,credits:row.payg?.balance??0},new Date(at));
     });
     writes=work.then(()=>{},()=>{});
     return work;
   }
+  function creditHistory(slug){
+    const row=registry.get(validateBranchSlug(slug));
+    if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
+    return [...(row.payg?.events||[])].slice(-100);
+  }
+  function paygStatus(slug){
+    const row=registry.get(validateBranchSlug(slug));
+    if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
+    return {enabled:row.subscription?.plan==='payg',balance:row.payg?.balance??0,spent:row.payg?.spent??0,unit:'signed-url-issuance'};
+  }
+  // Mutations are serialized and durably written before confirming to the caller.
+  // This is an INTERNAL per-signed-URL allowance ledger. It is not ElevenLabs'
+  // actual metered provider credit balance or billed minutes.
+  async function changePayg(slug,action,{amount=1,note='',eventId}={}){
+    validateBranchSlug(slug);
+    if(action==='topup'&&(!Number.isSafeInteger(amount)||amount<1||amount>100000))throw Object.assign(Error('Кредит 1–100000 хооронд байна.'),{code:400});
+    if(typeof note!=='string'||note.length>160)throw Object.assign(Error('Тэмдэглэл буруу.'),{code:400});
+    const work=writes.catch(()=>{}).then(async()=>{
+      const row=registry.get(slug);
+      if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
+      const payg=row.payg||{balance:0,spent:0,events:[]};
+      if(action==='reserve'&&(row.subscription?.plan!=='payg'||row.subscription?.status!=='active'||payg.balance<1))
+        throw Object.assign(Error('PAYG кредит хүрэлцэхгүй эсвэл эрх идэвхгүй.'),{code:402});
+      if(action==='refund'&&(!eventId||!(payg.events||[]).some(x=>x.id===eventId&&x.action==='reserve')))
+        throw Object.assign(Error('Буцаах эрхийн бүртгэл олдсонгүй.'),{code:400});
+      if(action==='refund'&&(payg.events||[]).some(x=>x.action==='refund'&&x.reversalOf===eventId))
+        return {balance:payg.balance,spent:payg.spent,eventId,duplicate:true};
+      const nextBalance=action==='topup'?payg.balance+amount:action==='reserve'?payg.balance-1:payg.balance+1;
+      if(!Number.isSafeInteger(nextBalance)||nextBalance<0||nextBalance>1000000)throw Object.assign(Error('Кредитийн хэмжээ зөвшөөрөгдөхгүй.'),{code:409});
+      const nextSpent=action==='reserve'?payg.spent+1:action==='refund'?Math.max(0,payg.spent-1):payg.spent;
+      const id=randomBytes(16).toString('hex');
+      const event={id,at:new Date().toISOString(),action,amount:action==='topup'?amount:1,note:note.trim(),...(action==='refund'?{reversalOf:eventId}:{})};
+      const replacement={...row,payg:{balance:nextBalance,spent:nextSpent,events:[...(payg.events||[]),event].slice(-1000)}};
+      await atomicWrite(registryFile,{version:1,branches:[...registry.values()].map(x=>x.slug===slug?replacement:x)});
+      registry.set(slug,replacement);
+      return {balance:nextBalance,spent:nextSpent,eventId:id};
+    });
+    writes=work.then(()=>{},()=>{});
+    return work;
+  }
+  async function grantCredits(slug,input){return changePayg(slug,'topup',input);}
+  async function consumeCredit(slug){return changePayg(slug,'reserve');}
+  async function refundCredit(slug,eventId){return changePayg(slug,'refund',{eventId});}
   async function rotateCredentials(slug,{loginName,loginCode,adminToken}={}){
     validateBranchSlug(slug);
     if(loginName!==undefined&&(typeof loginName!=='string'||!/^[a-z][a-z0-9._-]{2,39}$/.test(loginName)))throw Object.assign(Error('Нэвтрэх нэр буруу.'),{code:400});
@@ -220,5 +266,5 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     writes=work.then(()=>{},()=>{});
     return work;
   }
-  return {load,get,list,create,authorize,authorizeLogin,subscription,history,grantSubscription,rotateCredentials};
+  return {load,get,list,create,authorize,authorizeLogin,subscription,history,grantSubscription,rotateCredentials,grantCredits,consumeCredit,refundCredit,creditHistory,paygStatus};
 }
