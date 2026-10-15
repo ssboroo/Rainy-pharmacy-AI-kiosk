@@ -113,20 +113,23 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     if(typeof name!=='string'||name.trim().length<2||name.length>80){
       throw Object.assign(Error('Салбарын нэр 2–80 тэмдэгт байна.'),{code:400});
     }
-    if(registry.has(slug))throw Object.assign(Error('Ийм кодтой салбар байна.'),{code:409});
-    if(registry.size>=200)throw Object.assign(Error('Салбарын дээд хэмжээ хүрсэн.'),{code:409});
-    const token=randomBytes(32).toString('base64url');
-    const salt=randomBytes(16).toString('hex');
-    const row={slug,name:name.trim(),createdAt:new Date().toISOString(),salt,hash:safeHash(token,salt)};
-    const next=[...registry.values(),row];
+    // Serialize check + persist + registration to prevent lost branches
+    // when platform administrators create two branches simultaneously.
     const work=writes.catch(()=>{}).then(async()=>{
+      if(registry.has(slug))throw Object.assign(Error('Ийм кодтой салбар байна.'),{code:409});
+      if(registry.size>=200)throw Object.assign(Error('Салбарын дээд хэмжээ хүрсэн.'),{code:409});
+      const token=randomBytes(32).toString('base64url');
+      const salt=randomBytes(16).toString('hex');
+      const row={slug,name:name.trim(),createdAt:new Date().toISOString(),salt,hash:safeHash(token,salt)};
+      const next=[...registry.values(),row];
       await mkdir(root,{recursive:true});
       await atomicWrite(registryFile,{version:1,branches:next});
+      registry.set(slug,row);
+      instances.set(slug,await loadInstance(row));
+      return {slug,name:row.name,createdAt:row.createdAt,adminToken:token};
     });
-    writes=work;await work;
-    registry.set(slug,row);
-    instances.set(slug,await loadInstance(row));
-    return {slug,name:row.name,createdAt:row.createdAt,adminToken:token};
+    writes=work.then(()=>{},()=>{});
+    return work;
   }
   return {load,get,list,create,authorize};
 }
