@@ -623,7 +623,7 @@ async function refreshElevenLabsCredits(){
    'ElevenLabs-ийн энэ API хариултад credit тоон үзүүлэлт алга. 0 гэж үзэхгүй.';
   updated.textContent='Багц: '+value.tier+' · Төлөв: '+value.status+
     ' · Шалгасан: '+(value.checkedAt?new Date(value.checkedAt).toLocaleString('mn-MN'):'Тодорхойгүй')+
-    ' · Нийт workspace-ийн хэрэглээ (PAYG Top Up тусдаа).';
+    ' · Нийт workspace-ийн багцын хэрэглээ. PAYG: ижил API key-ээр ашиглана; багц 0 болоход сайт хориглохгүй.';
  }catch(error){
   status.textContent='Credit татах алдаа: '+error.message;
   updated.textContent='Энэ нь 0 үлдэгдэл гэсэн үг биш.';

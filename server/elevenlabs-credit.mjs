@@ -11,7 +11,10 @@ export function normalizeElevenLabsSubscription(data,checkedAt=new Date().toISOS
   included,
   nextResetUnix:finiteNonnegative(data?.next_character_count_reset_unix),
   paygBalanceAvailable:false,
-  paygNote:'PAYG Top Up үлдэгдэл энэ API хариултад баталгаатай ирдэггүй; ElevenLabs Developers → Top Up хэсэгт тусад нь шалгана.',
+  billingMode:'provider-managed',
+  apiUsageSupported:true,
+  localQuotaEnforced:false,
+  paygNote:'API нь энэ түлхүүрийн ElevenLabs workspace-ийн багцын кредитийг эхэлж, дууссаны дараа PAYG Top Up үлдэгдлийг ашиглана. Багцын үлдэгдэл 0 болсон ч сайт API-г хориглохгүй. PAYG идэвхтэй эсэх, бодит үлдэгдлийг ElevenLabs Developers → Top Up хэсэгт шалгана.',
   sharedNote:'Энэ нь нэг ElevenLabs API key-ийн workspace-н нийт хэрэглээ; байгууллага бүрийн тусдаа credit биш.'
  };
 }

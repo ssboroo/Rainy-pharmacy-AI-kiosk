@@ -52,3 +52,12 @@ test('missing key and provider errors do not leak keys or masquerade as zero bal
  assert.equal(JSON.stringify(one).includes('very-secret'),false);
  now=2000;await failed.get();assert.equal(calls,1);
 });
+
+test('PAYG billing remains provider-managed when included credits run out',()=>{
+ const view=normalizeElevenLabsSubscription({character_count:1000,character_limit:1000});
+ assert.equal(view.included.remaining,0);
+ assert.equal(view.localQuotaEnforced,false);
+ assert.equal(view.apiUsageSupported,true);
+ assert.equal(view.billingMode,'provider-managed');
+ assert.equal(view.paygBalanceAvailable,false);
+});
