@@ -30,7 +30,7 @@ $('login').onclick=async()=>{
     $('currentBranchBanner').textContent=branchSlug?'🔐 Салбарын тусгаарлагдсан админ: '+branchSlug:'✦ Үндсэн / төв эмийн сангийн админ';
     if(!branchSlug){$('branchManager').hidden=false;$('organizationOperations').hidden=false;await loadBranches();await refreshOrganization();}
     else $('branchManager').hidden=true;
-    $('editor').hidden=false;initAdminNavigation();$('token').value='';show('Амжилттай нэвтэрлээ.');
+    $('editor').hidden=false;initAdminNavigation();$('token').value='';$('orgLoginCode').value='';show('Амжилттай нэвтэрлээ.');
     await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices(),refreshIntegrations()]);
   }catch(e){token='';show('Нэвтэрч чадсангүй: '+e.message);}
 };
