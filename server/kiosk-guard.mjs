@@ -6,7 +6,7 @@ export function pharmacyClock(date=new Date()){
  return hour*60+minute;
 }
 export function isKioskOpen(date=new Date(),start='08:00',end='22:00'){
- const parse=value=>{if(!/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value))throw Error('Invalid opening hours');const [h,m]=value.split(':').map(Number);return h*60+m;};
+ const parse=value=>{if(!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value))throw Error('Invalid opening hours');const [h,m]=value.split(':').map(Number);return h*60+m;};
  const now=pharmacyClock(date),a=parse(start),b=parse(end);
  return a===b?false:a<b?(now>=a&&now<b):(now>=a||now<b);
 }
