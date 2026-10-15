@@ -10,7 +10,7 @@ export function voiceAllowed(env, agentId) { return voiceConnectionStatus(env,ag
 export const DEFAULT_SETTINGS = {
   pharmacyName:'RAINY Pharmacy',assistantName:'Номи',
   greeting:'Сайн байна уу! Би таны эмийн сангийн AI туслах. Надаас асуугаарай.',
-  defaultAvatar:'nomi',accent:'#35bea3',locationName:'Эмийн сангийн мэдээллийн цэг',agentId:'',logoData:''
+  defaultAvatar:'nomi',accent:'#35bea3',locationName:'Эмийн сангийн мэдээллийн цэг',agentId:'',logoData:'',idleTimeoutSec:120,resetOnDisconnect:true
 };
 export const DEMO_CATALOG = EXAMPLE_MEDICINES;
 export function voiceConnectionStatus(env,agentId){
@@ -52,6 +52,8 @@ export function validateSettings(input,prev=DEFAULT_SETTINGS) {
     if(typeof input[key]!=='string'||!input[key].trim()) throw Error(key+' хоосон байж болохгүй.');
     next[key]=txt(input[key],key==='greeting'?300:80);
   }
+  if('idleTimeoutSec' in input){if(!Number.isInteger(input.idleTimeoutSec)||input.idleTimeoutSec<30||input.idleTimeoutSec>900)throw Error('Автомат reset хугацаа 30–900 секунд байна.');next.idleTimeoutSec=input.idleTimeoutSec;}
+  if('resetOnDisconnect' in input){if(typeof input.resetOnDisconnect!=='boolean')throw Error('resetOnDisconnect boolean байна.');next.resetOnDisconnect=input.resetOnDisconnect;}
   if('defaultAvatar' in input){if(!AVATARS.some(a=>a.id===input.defaultAvatar))throw Error('AI дүр танигдсангүй.');next.defaultAvatar=input.defaultAvatar;}
   if('accent' in input){if(!/^#[a-fA-F0-9]{6}$/.test(input.accent))throw Error('Өнгө #RRGGBB форматаар байна.');next.accent=input.accent;}
   if('agentId' in input){if(typeof input.agentId!=='string'||!/^[a-zA-Z0-9_-]{0,120}$/.test(input.agentId))throw Error('Agent ID формат буруу.');next.agentId=input.agentId;}

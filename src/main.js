@@ -17,6 +17,7 @@ let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=
 let lastWakeAt=0;
 let avatar25=null,localSessionWanted=false;
 let analyticsSessionRecorded=false;
+let resettingVisitor=false,visitorEpoch=0;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -44,17 +45,26 @@ function markKioskInteraction(){
     trackAnalytics('sessionStarted');
   }
 }
-function activity(){
-  clearTimeout(resetTimer);
-  resetTimer=setTimeout(async()=>{
-    analyticsSessionRecorded=false;
+async function resetVisitorSession(){
+  if(resettingVisitor)return;
+  resettingVisitor=true;
+  visitorEpoch++;
+  clearTimeout(resetTimer);resetTimer=null;
+  analyticsSessionRecorded=false;
+  try{
     await stopVoice();
     clearMedicineCard();
-    $('conversation').replaceChildren();
-    addMessage('assistant',config?.greeting||'Сайн байна уу!');
-    $('questionInput').value='';
     closeModal();
-  },120000);
+    $('conversation').replaceChildren();
+    $('questionInput').value='';
+    addMessage('assistant',config?.greeting||'Сайн байна уу!');
+  }finally{resettingVisitor=false;}
+}
+function activity(){
+  if(resettingVisitor)return;
+  clearTimeout(resetTimer);
+  const seconds=Number.isInteger(config?.idleTimeoutSec)?config.idleTimeoutSec:120;
+  resetTimer=setTimeout(()=>{void resetVisitorSession();},Math.max(30,Math.min(900,seconds))*1000);
 }
 async function loadMedicineIndex(){
   try{
@@ -138,14 +148,16 @@ function renderAvatars(){
 }
 async function ask(question){
   const q=question.trim();if(q.length<2)return;
+  const requestEpoch=visitorEpoch;
   markKioskInteraction();
   $('questionInput').value='';addMessage('user',q);
   try{
     const answer=await api('/ask',{method:'POST',body:JSON.stringify({question:q})});
+    if(requestEpoch!==visitorEpoch)return;
     addMessage('assistant',answer.reply);
     if(recognition){const active=recognition;recognition=null;active.onend=null;active.onerror=null;try{active.abort();}catch{};const audible=await speakBrowser(answer.reply);if(!audible)toast('Энэ төхөөрөмжийн Монгол хэлний TTS дэмжлэг хязгаарлагдмал. ElevenLabs Voice Agent-г админ дээр шалгана уу.');if(localSessionWanted&&!conversation)await startLocalVoiceSession(false);}
     if(answer.kind==='emergency')toast('ЯАРАЛТАЙ: Эм зүйчийг дуудаж, шаардлагатай бол 103 руу залгаарай.');
-  }catch(e){toast(e.message);}
+  }catch(e){if(requestEpoch===visitorEpoch)toast(e.message);}
 }
 function setWave(level) {
   const next=Math.max(0,Math.min(1,Number(level)||0));
@@ -320,7 +332,9 @@ async function startVoice(fromWake=false){
   if(config?.voiceReady){
     try{
       setStatus('connecting');
+      const startedAt=visitorEpoch;
       const {signedUrl}=await api('/agent/signed-url');
+      if(startedAt!==visitorEpoch){voiceStarting=false;return;}
       // Audio travels only to a clinician-approved ElevenLabs Agent.
       const live=await Conversation.startSession({
         signedUrl,
@@ -328,6 +342,9 @@ async function startVoice(fromWake=false){
         workletPaths:ELEVENLABS_WORKLET_PATHS,
         onConnect:()=>{setStatus('listening');trackAnalytics('voiceConnected');},
         onDisconnect:()=>{
+          if(config?.resetOnDisconnect!==false&&!resettingVisitor){
+            queueMicrotask(()=>{void resetVisitorSession();});
+          }
           conversation=null;
           voiceStarting=false;
           $('micBtnText').textContent='Ярилцлага эхлүүлэх';
@@ -355,6 +372,7 @@ async function startVoice(fromWake=false){
           }
         }
       });
+      if(startedAt!==visitorEpoch){await live.endSession();voiceStarting=false;return;}
       conversation=live;voiceStarting=false;startVoiceVisuals();
       return;
     }catch(e){
@@ -528,6 +546,7 @@ function wire(){
   $('homeNav').onclick=()=>{closeModal();window.scrollTo({top:0,behavior:'smooth'});};
   $('catalogNav').onclick=catalogModal;$('medicineAction').onclick=catalogModal;
   $('cameraNav').onclick=cameraModal;$('cameraAction').onclick=cameraModal;
+  $('newVisitorBtn').onclick=()=>{void resetVisitorSession();};
   $('voiceNav').onclick=()=>startVoice();$('voiceAction').onclick=()=>startVoice();$('micBtn').onclick=()=>startVoice();
   $('setupMicrophoneBtn').onclick=enableMicFromStaff;
   $('kioskCatalogBtn').onclick=catalogModal;

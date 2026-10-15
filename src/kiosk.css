@@ -205,3 +205,8 @@ body.immersive-kiosk{overflow:hidden}
  .content-grid{overflow:visible!important}
  .stage-persona{min-height:260px!important}
 }
+
+/* Staff-facing quick reset is low-emphasis and keeps the main voice CTA dominant. */
+.new-visitor-btn{display:block;margin:5px auto 0;padding:6px 11px;border:1px solid #c4ded0;border-radius:999px;background:#f1faf4;color:#286851;font-size:11px;font-weight:700;cursor:pointer}
+.new-visitor-btn:hover{background:#dbf2e5}
+@media(min-width:1101px) and (min-height:740px){.new-visitor-btn{padding:4px 9px;font-size:10px;margin-top:3px}}
