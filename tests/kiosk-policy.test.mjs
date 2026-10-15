@@ -32,12 +32,12 @@ test('visualization and face states stay bounded',()=>{
 });
 test('STT rejects low confidence',async()=>{const mod=await import('../src/kiosk-policy.js');assert.equal(mod.acceptVoiceTranscript('Энэ эм ямар үнэтэй вэ',0.8),true);assert.equal(mod.acceptVoiceTranscript('за',0.9),false);assert.equal(mod.acceptVoiceTranscript('Энэ эм ямар үнэтэй вэ',0.2),false);});
 
-test('08:00–22:00 Ulaanbaatar only, including UTC day crossover and clock boundary',async()=>{
+test('24/7 access including UTC day crossover and former closing boundary',async()=>{
  const {isBusinessHour}=await import('../src/kiosk-policy.js');
  for(const [iso,expected] of [
- ['2026-10-14T23:59:59Z',false],['2026-10-15T00:00:00Z',true],
- ['2026-10-15T13:59:59Z',true],['2026-10-15T14:00:00Z',false],
- ['2026-10-15T19:00:00Z',false]
+ ['2026-10-14T23:59:59Z',true],['2026-10-15T00:00:00Z',true],
+ ['2026-10-15T13:59:59Z',true],['2026-10-15T14:00:00Z',true],
+ ['2026-10-15T19:00:00Z',true]
  ])assert.equal(isBusinessHour(new Date(iso)),expected,iso);
 });
 

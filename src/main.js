@@ -7,7 +7,7 @@ import './avatar-25d.css';
 import './kiosk-finish.css';
 import {IllustratedAvatar25D} from './avatar-25d.js';
 import {WakeGreetingListener} from './kiosk-voice.js';
-import {toneForState,acceptVoiceTranscript,isBusinessHour} from './kiosk-policy.js';
+import {toneForState,acceptVoiceTranscript} from './kiosk-policy.js';
 const $=id=>document.getElementById(id);
 const branchSlug=new URLSearchParams(window.location.search).get('branch')||'';
 const scopedPath=route=>route+(branchSlug?(route.includes('?')?'&':'?')+'branch='+encodeURIComponent(branchSlug):'');
@@ -260,7 +260,6 @@ function makeWakeListener(){
   wakeListener=new WakeGreetingListener({
     SpeechRecognition,
     onWake:async()=>{
-      if(!isBusinessHour()){wakeListener.pause();return;}
       if(voiceStarting||conversation||recognition)return;
       const now=Date.now();
       if(now-lastWakeAt<3500){wakeListener.resume(2500);return;}
@@ -278,7 +277,6 @@ function makeWakeListener(){
   updateMicrophoneUI();
 }
 async function enableMicFromStaff(){
-  if(!isBusinessHour()){toast('Микрофоны автомат сонсох горим 08:00–22:00 цагт ажиллана.');return;}
   if(wakeListener?.enabled){
     wakeListener.disable();localStorage.removeItem(WAKE_STORAGE_KEY);
     await stopVoice(false);updateMicrophoneUI();return;
@@ -300,7 +298,7 @@ async function enableMicFromStaff(){
   }catch(error){toast('Микрофон зөвшөөрөл олгогдсонгүй: '+error.message);}
 }
 async function restoreMicIfGranted(){
-  if(!isBusinessHour()||localStorage.getItem(WAKE_STORAGE_KEY)!=='1')return;
+  if(localStorage.getItem(WAKE_STORAGE_KEY)!=='1')return;
   try{
     if(!navigator.permissions?.query)return;
     const permission=await navigator.permissions.query({name:'microphone'});
@@ -368,10 +366,7 @@ async function startLocalVoiceSession(fromWake){
   catch(e){recognition=null;toast(e.message);await stopVoice();}
 }
 async function startVoice(fromWake=false){
-  if(!isBusinessHour()){
-    toast('AI туслах өдөр бүр 08:00–22:00 цагт ажиллана. Одоо дуут холболт нээхгүй.');
-    return;
-  }
+
   activity();
   if(voiceStarting)return;
   if(conversation||recognition){if(!fromWake)await stopVoice();return;}
@@ -735,22 +730,6 @@ async function init(){
       requestAnimationFrame(()=>avatar25?.resize());
     }
     await restoreMicIfGranted();
-    // Boundary guard: stop active paid audio at closing, resume only consented
-    // wake listening when the next work day starts and tab is visible.
-    let lastOpen=isBusinessHour();
-    setInterval(()=>{
-      const open=isBusinessHour();
-      if(!open){
-        if(lastOpen||conversation||recognition||wakeListener?.enabled){
-          wakeListener?.pause();
-          void stopVoice(false);
-          toast('Үйлчилгээний цаг дууслаа. Маргааш 08:00 цагаас үргэлжилнэ.');
-        }
-      }else if(!lastOpen&&localStorage.getItem(WAKE_STORAGE_KEY)==='1'&&!document.hidden){
-        void restoreMicIfGranted();
-      }
-      lastOpen=open;
-    },15000);
     activity();
   }catch(e){
     $('greetingBubble').textContent='Сервертэй холбогдож чадсангүй. Байгууллагын ажилтнаас тусламж авна уу.';
