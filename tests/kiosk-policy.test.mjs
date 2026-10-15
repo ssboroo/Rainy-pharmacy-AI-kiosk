@@ -5,8 +5,8 @@ import { isWakeGreeting, getWakeRetryDelay, toneForState } from '../src/kiosk-po
 test('recognizes Mongolian greetings on public kiosk',()=>{
   assert.equal(isWakeGreeting('Сайн байна уу?'),true);
   assert.equal(isWakeGreeting('САЙН УУ'),true);
-  assert.equal(isWakeGreeting('Байна уу'),true);
-  assert.equal(isWakeGreeting('Hello'),true);
+  assert.equal(isWakeGreeting('Байна уу'),false);
+  assert.equal(isWakeGreeting('Hello'),false);
 });
 test('does not activate for unrelated conversation',()=>{
   assert.equal(isWakeGreeting('Парацетамол'),false);
@@ -40,3 +40,5 @@ test('08:00–22:00 Ulaanbaatar only, including UTC day crossover and clock boun
  ['2026-10-15T19:00:00Z',false]
  ])assert.equal(isBusinessHour(new Date(iso)),expected,iso);
 });
+
+test('generic background sounds never trigger a paid AI conversation',()=>{for(const s of ['hi','hello','байна уу','за','эмийн үнэ','сайн байна уу? гэж хэлсэн','сайн байна уу та юу хайж байна'])assert.equal(isWakeGreeting(s),false,s);});
