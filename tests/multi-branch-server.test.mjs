@@ -44,10 +44,15 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal(ready,true,logs);
     const noToken=await call('/api/admin/branches');
     assert.equal(noToken.status,401);
+    assert.equal((await call('/api/admin/elevenlabs/credits')).status,401);
+
     const one=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'one-branch',name:'Эмийн сан 1'}});
     const two=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'two-branch',name:'Эмийн сан 2'}});
     assert.equal(one.status,201);assert.equal(two.status,201);
     const key1=one.data.branch.adminToken,key2=two.data.branch.adminToken;
+    assert.equal((await call('/api/admin/elevenlabs/credits?branch=one-branch',{auth:key1})).status,403);
+    assert.equal((await call('/api/admin/elevenlabs/credits?branch=two-branch',{auth:key2})).status,403);
+
     const ownerCfg=await call('/api/admin/branches/config?slug=one-branch',{auth:token});
     assert.equal(ownerCfg.status,200);
     assert.equal(ownerCfg.data.settings.idleTimeoutSec,120);

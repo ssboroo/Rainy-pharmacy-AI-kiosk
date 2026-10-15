@@ -75,6 +75,13 @@
   </div>
   <p class="device-disclaimer">Тайлангийн асуулт, сессийн тоо нь давтагдашгүй хэрэглэгч, орлого, бодитоор хэмнэсэн цаг биш.</p>
 </section></div><div class="admin-view" data-view="integrations"><section class="panel" style="border:1px solid #b8dacc;background:#f2faf6"><h2>🧪 II үе — AI & POS найдвартай байдал</h2><p>Холболтуудын бодит бэлэн байдлыг харна. “Тохируулсан” нь API бодитоор ажилласны баталгаа биш.</p><pre id="integrationStatus" style="white-space:pre-wrap;font-size:12px"></pre><button type="button" id="integrationRefresh">Холболт шалгах</button>
+  <section id="elevenlabsCreditPanel" class="subscription-panel" hidden aria-label="ElevenLabs нэгдсэн credit">
+    <h3>ElevenLabs · бодит хэрэглээ</h3>
+    <p id="elevenlabsCreditStatus" aria-live="polite">ElevenLabs-ийн хэрэглээг шалгаж байна…</p>
+    <p id="elevenlabsCreditUpdated" class="device-disclaimer"></p>
+    <p class="device-disclaimer">Энэ нь Railway-ийн нийтлэг ElevenLabs API key-тэй workspace-ийн багцад багтсан хэрэглээ; салбар тус бүрийн credit биш. Шинээр худалдаж авсан PAYG Top Up үлдэгдэл өөр тул ElevenLabs Developers → Top Up хэсэгт шалгана. Нэмэлт top-up-ийг энэ самбар автоматаар худалдаж авахгүй.</p>
+    <button type="button" id="elevenlabsCreditRefresh">Одоо шинэчлэх</button>
+  </section>
 <div class="integration-setup">
   <label>Энэ байгууллагын ElevenLabs Agent ID<input id="integrationAgentId" placeholder="agent_..." autocomplete="off"/></label>
   <button id="integrationAgentSave" type="button">Agent ID хадгалах</button>

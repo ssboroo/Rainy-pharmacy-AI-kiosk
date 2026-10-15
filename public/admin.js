@@ -33,6 +33,7 @@ $('login').onclick=async()=>{
     else $('branchManager').hidden=true;
     $('editor').hidden=false;initAdminNavigation();$('token').value='';$('orgLoginCode').value='';show('Амжилттай нэвтэрлээ.');
     await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices(),refreshIntegrations()]);
+    if(!branchSlug)startElevenLabsCreditsPolling();
   }catch(e){token='';show('Нэвтэрч чадсангүй: '+e.message);}
 };
 const avatars=[['nomi','Номи — робот'],['mira','Мира — AI хүн'],['kiki','Кики — робот'],['aria','Ариа — hologram'],['bobo','Бобо — робот']];
@@ -600,3 +601,39 @@ $('ownerCredentialForm').onsubmit=async event=>{
   show(slug+' байгууллагын нэвтрэх мэдээлэл шинэчлэгдлээ. Шинэ код/токеныг аюулгүй хадгална уу.');
  }catch(error){show('Нэвтрэх мэдээлэл солих алдаа: '+error.message);}
 };
+
+
+let creditPollingStarted=false;
+const creditNumber=v=>new Intl.NumberFormat('mn-MN').format(v);
+async function refreshElevenLabsCredits(){
+ if(branchSlug||!token||document.visibilityState==='hidden')return;
+ const status=$('elevenlabsCreditStatus'),updated=$('elevenlabsCreditUpdated');
+ $('elevenlabsCreditPanel').hidden=false;
+ $('elevenlabsCreditRefresh').disabled=true;
+ try{
+  const value=await api('elevenlabs/credits');
+  if(!value.ok){
+   status.textContent='Бодит хэрэглээний мэдээлэл боломжгүй — '+(value.message||'ElevenLabs холболтоо шалгана уу.');
+   updated.textContent='Хэрэглээний үлдэгдлийг 0 гэж тооцоогүй. Agent ID болон тухайн API key-ийн User/Subscription унших зөвшөөрлийг шалгана уу.';
+   return;
+  }
+  const included=value.included;
+  status.textContent=included?
+   'Багцад багтсан credit: '+creditNumber(included.remaining)+' үлдсэн · '+creditNumber(included.used)+' ашигласан / '+creditNumber(included.limit)+' нийт':
+   'ElevenLabs-ийн энэ API хариултад credit тоон үзүүлэлт алга. 0 гэж үзэхгүй.';
+  updated.textContent='Багц: '+value.tier+' · Төлөв: '+value.status+
+    ' · Шалгасан: '+(value.checkedAt?new Date(value.checkedAt).toLocaleString('mn-MN'):'Тодорхойгүй')+
+    ' · Нийт workspace-ийн хэрэглээ (PAYG Top Up тусдаа).';
+ }catch(error){
+  status.textContent='Credit татах алдаа: '+error.message;
+  updated.textContent='Энэ нь 0 үлдэгдэл гэсэн үг биш.';
+ }finally{$('elevenlabsCreditRefresh').disabled=false;}
+}
+function startElevenLabsCreditsPolling(){
+ if(creditPollingStarted)return;
+ creditPollingStarted=true;
+ void refreshElevenLabsCredits();
+ setInterval(()=>{if(document.visibilityState==='visible')void refreshElevenLabsCredits();},120000);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refreshElevenLabsCredits();});
+}
+$('elevenlabsCreditRefresh').onclick=refreshElevenLabsCredits;
