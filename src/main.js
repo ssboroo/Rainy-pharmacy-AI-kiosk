@@ -337,6 +337,17 @@ async function startVoice(fromWake=false){
         onModeChange:mode=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
         onMessage:message=>{
           const text=message.message;
+          // Defense-in-depth: an external ElevenLabs Agent must also have
+          // pharmacist-reviewed prompts. This client cannot mute audio already
+          // spoken by the provider, but immediately flags clinical requests.
+          if(message.source==='user'&&typeof text==='string'){
+            void api('/voice/triage',{method:'POST',body:JSON.stringify({text})}).then(result=>{
+              if(result.requiresPharmacist){
+                toast('Энэ асуултад эм зүйч хэрэгтэй. Доорх “Эм зүйч дуудах” товчийг ашиглана уу.');
+                addMessage('assistant','⚠ Мэргэжлийн эм зүйчээс тусламж авна уу. AI эмийн тун, онош, эмчилгээг шийдэхгүй.');
+              }
+            }).catch(()=>{});
+          }
           if(text&&typeof text==='string'&&(message.source==='ai'||message.source==='user')){
             if(message.source==='ai')trackAnalytics('voiceMessagesObserved');
             addMessage(message.source==='ai'?'assistant':'user',text);
@@ -348,8 +359,10 @@ async function startVoice(fromWake=false){
     }catch(e){
       voiceStarting=false;
       trackAnalytics('voiceFailed');
-      toast('ElevenLabs холболт боломжгүй: '+e.message);
-      await stopVoice();return;
+      toast('ElevenLabs холболт боломжгүй: '+e.message+'. Browser дуут танилт руу шилжиж байна.');
+      await stopVoice(false);
+      await startLocalVoiceSession(fromWake);
+      return;
     }
   }
   voiceStarting=false;
