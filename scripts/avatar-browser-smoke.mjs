@@ -40,8 +40,9 @@ try{
  }
  if(!spawned||!output.includes('data-smoke="pass"')){
    console.error('Browser avatar test failed:',{spawned,code});
-   console.error(output.slice(-4500));
-   console.error(stderr.slice(-600));
+   console.error('BODY STATUS:',(output.match(/<body[^>]*>/)||[])[0]||'missing');
+   console.error('HTML HEAD:',output.slice(0,800));
+   console.error(stderr.slice(-1100));
    process.exitCode=1;
  }else console.log('Chromium SVG animation smoke PASS: Nomi, Mira, Kiki, Aria and Bobo');
 }finally{await new Promise(done=>server.close(done));}
