@@ -168,3 +168,30 @@ button{touch-action:manipulation}button:focus-visible,input:focus-visible,a:focu
 .avatar-thumbnail.mira{background:linear-gradient(145deg,#f5eaff,#e8d9f6)!important}
 .avatar-thumbnail.mira .thumb-head{border-color:#72557d;background:#ffe8dd}
 .avatar-option[data-avatar="mira"].selected{border-color:#a889d1;box-shadow:inset 0 0 0 1px #a889d1;background:#f8f1ff}
+
+/* Mira live face hair correction: rounded layered fringe and tapered side locks */
+.portrait.mira .avatar-face{overflow:visible!important;border-radius:85px 85px 75px 75px}
+.portrait.mira .avatar-face:before{
+ top:-26px!important;left:-11px!important;width:187px!important;height:78px!important;
+ background:linear-gradient(145deg,#3b3049 0%,#72536e 42%,#41324f 100%)!important;
+ border-radius:65% 63% 45% 40%!important;
+ clip-path:polygon(0% 0%,100% 0%,100% 55%,91% 44%,78% 62%,66% 57%,54% 79%,42% 58%,29% 66%,17% 54%,5% 79%,0 73%)!important;
+ filter:drop-shadow(0 3px 3px #503a5825)
+}
+.portrait.mira .avatar-face:after{
+ top:19px!important;left:-11px!important;width:29px!important;height:100px!important;
+ background:linear-gradient(100deg,#433249,#71536d 70%,#4d3756)!important;
+ border-radius:70% 30% 64% 55%!important;transform:rotate(6deg)!important;
+ clip-path:polygon(0 0,100% 0,79% 65%,58% 100%,23% 93%,0 65%)!important;
+ filter:none!important
+}
+/* Layer on the opposite side without obscuring eyes and smile. */
+.portrait.mira .avatar-brow:after{
+ content:"";position:absolute;z-index:2;right:-73px;top:-40px;width:28px;height:105px;
+ background:linear-gradient(95deg,#49354f,#72546d 60%,#3d2f47);
+ border-radius:30% 70% 58% 42%;transform:rotate(-7deg);
+ clip-path:polygon(0 0,100% 0,100% 83%,65% 100%,25% 87%,0 60%);
+ pointer-events:none
+}
+.portrait.mira .avatar-eye{z-index:3}
+.portrait.mira .avatar-mouth{z-index:3}
