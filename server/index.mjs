@@ -13,6 +13,7 @@ import {createPostgresMirror} from './postgres-mirror.mjs';
 import {createOffsiteBackup} from './offsite-backup.mjs';
 import {parseInventorySnapshot,applyInventorySnapshot,buildProviderStatus,shouldEscalateVoiceText} from './phase2.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
+import {buildCatalogVoiceContext} from './voice-catalog.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'..'),dist=path.join(root,'dist');
@@ -307,6 +308,9 @@ async function handle(req,res){
       const result=await handoff(ctx);
       if(result.sent)await ctx.analytics.recordInternal(['staffRequestsSent']);
       return respond(res,200,result);
+    }
+    if(req.method==='GET'&&route==='/api/agent/voice-context'){
+      return respond(res,200,buildCatalogVoiceContext(publicMedicines(ctx),ctx.settings.pharmacyName));
     }
     if(req.method==='GET'&&route==='/api/agent/signed-url')return respond(res,200,await signedUrl(ctx,(ctx.slug||'central')+':'+String(req.socket.remoteAddress||'unknown')));
     if(route.startsWith('/api/admin/')){
