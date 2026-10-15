@@ -213,7 +213,9 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     const topup=await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3,requestId}});
     assert.equal(topup.status,200);
     assert.equal(topup.data.payg.balance,3);
-    assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3,requestId}})).data.payg.balance,3);
+    const repeated=await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3,requestId}});
+    assert.equal(repeated.status,200,JSON.stringify(repeated.data));
+    assert.equal(repeated.data.payg.balance,3);
     assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:4,requestId}})).status,409);
     assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3}})).status,400);
     assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:key2,body:{slug:'two-branch',amount:100,requestId:'94371b36-24d1-4d7f-a598-eb903d629f02'}})).status,401);
