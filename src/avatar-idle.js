@@ -16,7 +16,7 @@ export function chooseIdleGesture({quietMs=0,previous='',random=Math.random}={})
 }
 export function createAvatarIdleDirector({now=()=>Date.now(),schedule=setTimeout,cancel=clearTimeout,
  random=Math.random,onGesture=()=>{},onRest=()=>{}}={}){
- let state='ready',visible=true,reducedMotion=false,disposed=false;
+ let state='loading',visible=true,reducedMotion=false,disposed=false;
  let timer=null,gesture=null,previous='',lastInteraction=now();
  const allowed=()=>!disposed&&visible&&!reducedMotion&&(state==='ready'||state==='wake');
  const stopTimer=()=>{if(timer!==null){cancel(timer);timer=null;}};
