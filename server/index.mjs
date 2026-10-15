@@ -5,6 +5,7 @@ import {readFile,writeFile,rename,mkdir,stat} from 'node:fs/promises';
 import {timingSafeEqual} from 'node:crypto';
 import {createAnalyticsStore,analyticsCSV,metricForAnswer} from './analytics.mjs';
 import {createBranchRegistry} from './branches.mjs';
+import {createDeviceStore} from './devices.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -13,6 +14,7 @@ const dataDir=path.resolve(process.env.DATA_DIR||path.join(root,'storage'));
 const settingsPath=path.join(dataDir,'settings.json');
 const catalogPath=path.join(dataDir,'catalog.json');
 const analytics=createAnalyticsStore({filePath:path.join(dataDir,'analytics.json')});
+const defaultDevices=createDeviceStore({filePath:path.join(dataDir,'devices.json')});
 const port=Number(process.env.PORT||3000);
 const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:DEMO_CATALOG});
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
@@ -31,7 +33,7 @@ async function loadData(){
 const defaultBranch={
   get settings(){return settings;},
   get catalog(){return catalog;},
-  analytics,
+  analytics,devices:defaultDevices,
   async updateSettings(input){
     const value=validateInput(()=>validateSettings(input,settings));
     await persist(settingsPath,value);settings=value;
@@ -193,6 +195,12 @@ async function handle(req,res){
       avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:ctx.catalog.some(v=>!v.verified)
     });
+    if(req.method==='POST'&&route==='/api/device/heartbeat'){
+      const value=await bodyJson(req,500);
+      if(!value||typeof value!=='object'||typeof value.id!=='string'||typeof value.token!=='string')
+        return respond(res,400,{error:'Device identity missing'});
+      return respond(res,200,await ctx.devices.heartbeat(value.id,value.token,value.status));
+    }
     if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',ctx.catalog),demoMode:ctx.catalog.some(v=>!v.verified)});
     if(req.method==='GET'&&route==='/api/catalog/names')return respond(res,200,{
       items:ctx.catalog.map(({id,name,aliases})=>({id,name,aliases}))
@@ -292,6 +300,32 @@ async function handle(req,res){
       }
       if(req.method==='GET'&&route==='/api/admin/voice-status')return respond(res,200,agentDiagnostics(ctx));
       if(req.method==='POST'&&route==='/api/admin/voice-test')return respond(res,200,await checkAgentConnection(ctx));
+      if(route==='/api/admin/devices'){
+        if(req.method==='GET')return respond(res,200,{devices:ctx.devices.list()});
+        if(req.method==='POST'){
+          const value=await bodyJson(req,300);
+          if(!value||typeof value.name!=='string')return respond(res,400,{error:'Device name required'});
+          return respond(res,201,{device:await ctx.devices.enroll(value.name)});
+        }
+      }
+      if(route==='/api/admin/devices/revoke'&&req.method==='POST'){
+        const value=await bodyJson(req,300);
+        if(!value||typeof value.id!=='string')return respond(res,400,{error:'Device ID required'});
+        await ctx.devices.revoke(value.id);
+        return respond(res,200,{revoked:true});
+      }
+      if(route==='/api/admin/backup'&&req.method==='GET'){
+        // Portable manual export only. Never export passwords, device tokens,
+        // branch authentication hashes or upstream API secrets.
+        const snapshot={
+          version:1,generatedAt:new Date().toISOString(),
+          branch:hasBranch?url.searchParams.get('branch'):'default',
+          settings:{...ctx.settings,agentId:''},
+          catalog:ctx.catalog,analytics:ctx.analytics.report(90),
+          devices:ctx.devices.list(),subscription:entitlement
+        };
+        return respond(res,200,{backup:snapshot});
+      }
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings:ctx.settings});
       if(req.method==='GET'&&route==='/api/admin/catalog')return respond(res,200,{items:ctx.catalog});
       if(req.method==='PUT'&&route==='/api/admin/settings'){
@@ -317,5 +351,6 @@ async function handle(req,res){
 }
 await loadData();
 await analytics.load();
+await defaultDevices.load();
 await registry.load();
 http.createServer(handle).listen(port,'0.0.0.0',()=>console.log('RAINY Pharmacy on port '+port));

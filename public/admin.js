@@ -22,7 +22,7 @@ $('login').onclick=async()=>{
     if(!branchSlug){$('branchManager').hidden=false;await loadBranches();}
     else $('branchManager').hidden=true;
     $('editor').hidden=false;$('token').value='';show('Амжилттай нэвтэрлээ.');
-    await Promise.all([refreshVoiceStatus(),refreshAnalytics()]);
+    await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices()]);
   }catch(e){token='';show('Нэвтэрч чадсангүй: '+e.message);}
 };
 const avatars=[['nomi','Номи — робот'],['mira','Мира — AI хүн'],['kiki','Кики — робот'],['aria','Ариа — hologram'],['bobo','Бобо — робот']];
@@ -261,4 +261,44 @@ $('catalogCsvImport').onclick=async()=>{
     $('catalog').value=JSON.stringify(parsed,null,2);
     show(parsed.length+' эмийг CSV-ээс уншлаа. Бодит каталогоо солихоос өмнө мэдээллээ шалгаад "Каталог хадгалах" дарна уу.');
   }catch(error){show('CSV импортын алдаа: '+error.message);}
+};
+
+async function refreshDevices(){
+ try{
+  const data=await api('devices');
+  const root=$('devicesList');root.replaceChildren();
+  if(!data.devices.length){const p=document.createElement('p');p.textContent='Бүртгэлтэй төхөөрөмж алга.';root.append(p);}
+  for(const item of data.devices){
+   const div=document.createElement('div');div.className='device-row';
+   const text=document.createElement('span');text.textContent=(item.state==='online'?'🟢 ':item.state==='revoked'?'⛔ ':'⚪ ')+item.name+' — '+item.state+' · '+(item.lastSeenAt?new Date(item.lastSeenAt).toLocaleString('mn-MN'):'Холбогдоогүй');
+   const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Эрх цуцлах';revoke.disabled=item.state==='revoked';
+   revoke.onclick=async()=>{if(!confirm('Энэ төхөөрөмжийн холболтыг цуцлах уу?'))return;await api('devices/revoke','POST',{id:item.id});await refreshDevices();};
+   div.append(text,revoke);root.append(div);
+  }
+ }catch(error){show('Төхөөрөмжийн мэдээлэл: '+error.message);}
+}
+$('devicesRefresh').onclick=refreshDevices;
+$('deviceForm').onsubmit=async e=>{
+ e.preventDefault();
+ try{
+  const x=await api('devices','POST',{name:$('deviceName').value.trim()});
+  $('deviceId').textContent=x.device.id;$('deviceToken').textContent=x.device.token;
+  $('deviceCredentials').hidden=false;await refreshDevices();
+  show('Төхөөрөмж бүртгэгдлээ. Түлхүүрийг аюулгүй хадгалаарай.');
+ }catch(error){show('Төхөөрөмж бүртгэх алдаа: '+error.message);}
+};
+$('deviceConnect').onclick=()=>{
+ const id=$('deviceId').textContent,secret=$('deviceToken').textContent;
+ const key='rainy-device-'+(branchSlug||'default');
+ localStorage.setItem(key,JSON.stringify({id,token:secret}));
+ show('Энэ browser-д төхөөрөмж холбогдлоо. Киоскын нүүр хуудсыг нээхэд heartbeat эхэлнэ.');
+};
+$('backupExport').onclick=async()=>{
+ try{
+  const x=await api('backup');
+  const blob=new Blob([JSON.stringify(x.backup,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='rainy-'+(branchSlug||'default')+'-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(error){show('Backup татаж чадсангүй: '+error.message);}
 };
