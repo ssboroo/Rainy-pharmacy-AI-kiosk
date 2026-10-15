@@ -3,7 +3,7 @@ export function isWakeGreeting(value) {
   if (typeof value !== 'string') return false;
   const text=value.normalize('NFKC').toLocaleLowerCase('mn').trim().replace(/[.!?…。，！？]+$/gu,'').trim();
   if(text.length>32)return false;
-  return ['сайн байна уу','сайн уу','байна уу','hello','hi'].includes(text);
+  return ['сайн байна уу','сайн уу','сайн байна уу рэйнй','rainy сайн байна уу','рэйнй сайн байна уу'].includes(text);
 }
 export function getWakeRetryDelay(error,attempt=1) {
   if(['not-allowed','service-not-allowed','audio-capture','aborted'].includes(error))return null;

@@ -1,4 +1,5 @@
 import http from 'node:http';
+import {isBusinessHour} from '../src/kiosk-policy.js';
 import {createVoiceIssueBudget} from './kiosk-guard.mjs';
 import {createElevenLabsCreditMonitor} from './elevenlabs-credit.mjs';
 import path from 'node:path';
@@ -314,7 +315,11 @@ async function handle(req,res){
     if(req.method==='GET'&&route==='/api/agent/voice-context'){
       return respond(res,200,buildCatalogVoiceContext(publicMedicines(ctx),ctx.settings.pharmacyName));
     }
-    if(req.method==='GET'&&route==='/api/agent/signed-url')return respond(res,200,await signedUrl(ctx,(ctx.slug||'central')+':'+String(req.socket.remoteAddress||'unknown')));
+    if(req.method==='GET'&&route==='/api/agent/signed-url'){
+      if(!voiceAllowed(voiceEnvironment(ctx),agentId(ctx)))return respond(res,503,{error:'ElevenLabs Agent холболт эсвэл эмнэлзүйн зөвшөөрөл дутуу.'});
+      if(!isBusinessHour())return respond(res,403,{error:'Дуут AI үйлчилгээ Улаанбаатарын цагаар 08:00–22:00 цагт ажиллана.'});
+      return respond(res,200,await signedUrl(ctx,(ctx.slug||'central')+':'+String(req.socket.remoteAddress||'unknown')));
+    }
     if(route.startsWith('/api/admin/')){
       // The platform token manages the legacy/default instance and branch creation.
       // Each new branch has a separate randomly generated admin token that cannot
