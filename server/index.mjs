@@ -7,6 +7,7 @@ import {createAnalyticsStore,analyticsCSV,metricForAnswer} from './analytics.mjs
 import {createBranchRegistry} from './branches.mjs';
 import {createDeviceStore} from './devices.mjs';
 import {createAuditStore,organizationReport,slaSnapshot} from './operations.mjs';
+import {createBackupManager} from './backups.mjs';
 import {parseInventorySnapshot,applyInventorySnapshot,buildProviderStatus,shouldEscalateVoiceText} from './phase2.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
@@ -18,9 +19,21 @@ const catalogPath=path.join(dataDir,'catalog.json');
 const analytics=createAnalyticsStore({filePath:path.join(dataDir,'analytics.json')});
 const defaultDevices=createDeviceStore({filePath:path.join(dataDir,'devices.json')});
 const audit=createAuditStore({filePath:path.join(dataDir,'operations-audit.json')});
+const backupManager=createBackupManager({directory:path.join(dataDir,'scheduled-backups'),dataDir});
 const port=Number(process.env.PORT||3000);
 const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:DEMO_CATALOG});
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
+async function automatedSnapshot(){
+  const scrub=ctx=>({
+    settings:{...ctx.settings,agentId:''},catalog:ctx.catalog,
+    analytics:ctx.analytics.report(90),devices:ctx.devices.list()
+  });
+  const branches=registry.list().map(row=>({
+    slug:row.slug,name:row.name,subscription:row.subscription,
+    ...scrub(registry.get(row.slug))
+  }));
+  return backupManager.snapshot({default: scrub(defaultBranch),branches});
+}
 async function loadData(){
   await mkdir(dataDir,{recursive:true});
   try{settings=validateSettings(JSON.parse(await readFile(settingsPath,'utf8')),settings);}catch(e){if(e.code!=='ENOENT')console.warn('Settings not loaded:',e.message);}
@@ -274,6 +287,15 @@ async function handle(req,res){
       if(route==='/api/admin/subscription'){
         if(req.method==='GET')return respond(res,200,{subscription:entitlement,history:hasBranch?registry.history(url.searchParams.get('branch')):[]});
       }
+      if(route==='/api/admin/organization/backups'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        return respond(res,200,{files:await backupManager.list(),location:'local-volume',offsiteReplicated:false,restoreTested:false});
+      }
+      if(route==='/api/admin/organization/backups/create'&&req.method==='POST'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        const result=await automatedSnapshot();
+        return respond(res,201,{backup:result,offsiteReplicated:false});
+      }
       if(route==='/api/admin/organization/report'&&req.method==='GET'){
         if(hasBranch)return respond(res,403,{error:'Төв админ шаардлагатай.'});
         const window=[7,30,90].includes(Number(url.searchParams.get('days')))?Number(url.searchParams.get('days')):30;
@@ -402,4 +424,7 @@ await analytics.load();
 await defaultDevices.load();
 await registry.load();
 await audit.load();
+// A local snapshot at boot and every 24h. This does not replace off-site backup.
+try{await automatedSnapshot();}catch(err){console.warn('Local backup unavailable:',err.message);}
+setInterval(()=>automatedSnapshot().catch(err=>console.warn('Local backup failed:',err.message)),86400000).unref();
 http.createServer(handle).listen(port,'0.0.0.0',()=>console.log('RAINY Pharmacy on port '+port));
