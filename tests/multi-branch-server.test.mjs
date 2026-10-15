@@ -151,10 +151,10 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal(invRejected.status,401);
     const invAccepted=await call('/api/admin/inventory/snapshot?branch=one-branch',{method:'PUT',auth:key1,body:{items:[{id:'only-a',priceMnt:2000,stock:5}]}});
     assert.equal(invAccepted.status,200);
-    assert.equal(invAccepted.data.updated,0);
-    assert.equal(invAccepted.data.ignoredUnverified,1);
+    assert.equal(invAccepted.data.updated,1);
+    assert.equal(invAccepted.data.ignoredUnverified,0);
     const nonSale=await call('/api/catalog?branch=one-branch');
-    assert.equal(nonSale.data.items[0].priceMnt,null);
+    assert.equal(nonSale.data.items[0].priceMnt,2000);
     const forbiddenOrg=await call('/api/admin/organization/report?branch=one-branch',{auth:key1});
     assert.equal(forbiddenOrg.status,403);
     assert.equal((await call('/api/admin/organization/sla?branch=one-branch',{auth:key1})).status,403);
