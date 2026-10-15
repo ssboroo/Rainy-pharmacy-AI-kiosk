@@ -55,3 +55,26 @@ test('medicine matcher favors complete, longest medicine name; never invents met
   assert.equal(findMedicineMention('ханиадны эм',catalog),null);
   assert.equal(findMedicineMention('аспиран',catalog),null);
 });
+
+test('concurrent branch onboarding cannot overwrite another branch',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rainy-tenant-concurrent-'));
+  try{
+    const registry=createBranchRegistry({dataDir:dir});
+    await registry.load();
+    const [a,b]=await Promise.all([
+      registry.create({slug:'store-west',name:'Баруун'}),
+      registry.create({slug:'store-east',name:'Зүүн'})
+    ]);
+    assert.equal(registry.list().length,2);
+    assert.notEqual(a.adminToken,b.adminToken);
+    const restarted=createBranchRegistry({dataDir:dir});
+    await restarted.load();
+    assert.equal(restarted.list().length,2);
+    const result=await Promise.allSettled([
+      restarted.create({slug:'store-north',name:'Хойд'}),
+      restarted.create({slug:'store-north',name:'Давхар'})
+    ]);
+    assert.equal(result.filter(x=>x.status==='fulfilled').length,1);
+    assert.equal(result.filter(x=>x.status==='rejected').length,1);
+  }finally{await rm(dir,{recursive:true,force:true});}
+});
