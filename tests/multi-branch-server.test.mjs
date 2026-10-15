@@ -86,6 +86,16 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal(list.data.branches.length,2);
     assert.doesNotMatch(JSON.stringify(list.data),new RegExp(key1));
     assert.equal((await call('/api/admin/catalog?branch=two-branch',{auth:key1})).status,401);
+    assert.equal((await call('/api/admin/branches/catalog?slug=one-branch',{auth:token})).status,200);
+    assert.equal((await call('/api/admin/branches/catalog?slug=one-branch',{auth:key1})).status,401);
+    assert.equal((await call('/api/admin/branches/catalog?slug=two-branch',{auth:token})).status,200);
+    const ownerMedicine={id:'owner-only',name:'Зөвхөн нэг байгууллагын эм',description:'Туршилтын мэдээлэл',verified:false};
+    const ownerSave=await call('/api/admin/branches/catalog',{method:'PUT',auth:token,body:{slug:'one-branch',items:[ownerMedicine]}});
+    assert.equal(ownerSave.status,200);
+    assert.equal((await call('/api/admin/branches/catalog?slug=one-branch',{auth:token})).data.items[0].id,'owner-only');
+    assert.equal((await call('/api/admin/branches/catalog?slug=two-branch',{auth:token})).data.items.some(x=>x.id==='owner-only'),false);
+    assert.equal((await call('/api/admin/branches/catalog?slug=one-branch',{auth:key2})).status,401);
+
     assert.equal((await call('/api/admin/settings?branch=one-branch',{auth:token})).status,401);
     assert.equal((await call('/api/admin/branches?branch=one-branch',{auth:key1})).status,403);
     assert.equal((await call('/api/bootstrap?branch=none-such')).status,404);
