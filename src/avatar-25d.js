@@ -7,15 +7,27 @@ export const AVATAR_STYLES=Object.freeze({
 });
 export function normalizeVoiceEnergy(v){return typeof v==='number'&&Number.isFinite(v)?Math.max(0,Math.min(1,v)):0;}
 export function expressionFor(state){return ({speaking:'speaking',listening:'attentive',wake:'attentive',connecting:'thinking',emergency:'concerned'})[state]||'calm';}
-function headAccessory(id,p){
+function headAccessory(id,p,prefix){
   if(id==='nomi')return `<rect x="386" y="113" width="28" height="75" rx="14" fill="${p.deep}"/><circle cx="400" cy="113" r="26" fill="${p.deep}"/><circle cx="400" cy="109" r="19" fill="${p.tint}"/><circle cx="393" cy="103" r="6" fill="#fff" opacity=".8"/><rect x="193" y="312" width="59" height="91" rx="29" fill="${p.deep}"/><rect x="548" y="312" width="59" height="91" rx="29" fill="${p.deep}"/><rect x="199" y="330" width="45" height="58" rx="22" fill="${p.tint}"/><rect x="558" y="330" width="44" height="58" rx="22" fill="${p.tint}"/>`;
   if(id==='kiki')return `<path d="M245 251 L240 100 Q241 81 262 93 L351 168Z" fill="${p.deep}"/><path d="M255 220 L258 125 L327 184Z" fill="#ffe0c2"/><path d="M555 251 L560 100 Q559 81 538 93 L449 168Z" fill="${p.deep}"/><path d="M545 220 L542 125 L473 184Z" fill="#ffe0c2"/>`;
   if(id==='bobo')return `<g class="avatar25-ears"><rect x="286" y="70" width="84" height="195" rx="42" transform="rotate(-13 328 167)" fill="${p.deep}"/><rect x="302" y="83" width="49" height="167" rx="25" transform="rotate(-13 328 167)" fill="#ffe1ed"/><rect x="430" y="70" width="84" height="195" rx="42" transform="rotate(13 472 167)" fill="${p.deep}"/><rect x="449" y="83" width="49" height="167" rx="25" transform="rotate(13 472 167)" fill="#ffe1ed"/></g>`;
   if(id==='aria')return `<circle cx="400" cy="152" r="34" fill="none" stroke="#c8f7ff" stroke-width="7" opacity=".9"/><path d="M232 220 Q400 115 568 220" fill="none" stroke="${p.tint}" stroke-width="13" stroke-linecap="round"/><circle cx="400" cy="152" r="14" fill="#fff" opacity=".84"/>`;
-  return `<path d="M230 390 Q192 189 289 137 Q381 81 487 142 Q600 199 571 417 L547 505 Q522 547 514 484 L525 308 Q514 234 450 204 Q352 186 296 248 L272 457 Q249 542 227 485Z" fill="${p.hair}"/><path d="M253 224 Q310 115 411 148" fill="none" stroke="#c3aac1" stroke-width="14" stroke-linecap="round" opacity=".57"/>`;
+  return `<g class="avatar25-mira-hair-back">
+    <path d="M269 520 C234 453 241 320 249 258 C257 173 324 135 392 133 C487 128 550 192 556 294 C562 377 554 451 526 536 Q516 561 496 548 Q487 536 493 510 L484 364 C451 334 341 322 311 365 L304 497 Q295 552 278 548 Q265 543 269 520Z" fill="url(#${prefix}-mira-hair)"/>
+    <path d="M269 406 Q251 482 279 532 M529 407 Q546 482 518 532" fill="none" stroke="#927296" stroke-width="9" stroke-linecap="round" opacity=".44"/>
+    <path d="M279 235 C300 174 353 150 412 151" stroke="#b6a0bb" stroke-width="13" fill="none" stroke-linecap="round" opacity=".43"/>
+  </g>`;
 }
 function headShape(id,p,prefix){
-  if(id==='mira')return `<path d="M401 190 C316 185 263 260 263 356 Q261 484 342 527 Q401 560 467 527 Q540 486 537 356 C537 259 487 192 401 190Z" fill="url(#${prefix}-skin)" stroke="#e3b6af" stroke-width="5"/><path d="M258 287 Q282 170 400 175 Q488 172 536 272 Q521 225 474 218 Q426 261 333 251 Q296 253 258 287" fill="${p.hair}"/><path d="M316 301 Q341 291 363 307 M438 308 Q461 290 487 302" stroke="${p.hair}" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M396 380 Q384 405 405 410" stroke="#d49a9f" stroke-width="5" fill="none" stroke-linecap="round" opacity=".45"/>`;
+  if(id==='mira')return `<path d="M400 224 C340 218 295 267 293 356 Q291 462 357 508 Q399 538 444 507 Q510 462 508 356 C506 269 465 222 400 224Z" fill="url(#${prefix}-skin)" stroke="#e5bdb5" stroke-width="4"/>
+    <g class="avatar25-mira-fringe">
+      <path d="M275 317 C266 244 292 195 340 168 C392 138 463 153 502 195 Q531 233 521 315 Q502 270 470 248 Q441 282 384 292 Q338 305 290 295 L280 355Z" fill="url(#${prefix}-mira-hair)"/>
+      <path d="M326 192 Q387 160 452 191" stroke="#ab8aaa" stroke-width="12" stroke-linecap="round" fill="none" opacity=".52"/>
+      <path d="M281 275 Q266 345 289 421 Q297 443 313 436 L311 303Z" fill="url(#${prefix}-mira-hair)"/>
+      <path d="M514 272 Q531 351 509 424 Q500 446 482 437 L487 304Z" fill="url(#${prefix}-mira-hair)"/>
+    </g>
+    <path d="M319 337 Q343 323 365 338 M437 338 Q462 323 482 337" fill="none" stroke="#674b6b" stroke-width="8" stroke-linecap="round"/>
+    <path d="M399 384 Q389 406 406 413" fill="none" stroke="#cc9294" opacity=".47" stroke-width="5" stroke-linecap="round"/>`;
   const radius=id==='aria'?112:143;
   return `<rect x="218" y="181" width="364" height="346" rx="${radius}" fill="${p.deep}" opacity=".45" filter="url(#${prefix}-blur)"/><rect x="219" y="177" width="362" height="343" rx="${radius}" fill="url(#${prefix}-shell)" stroke="#fff" stroke-width="8" stroke-opacity=".88"/><path d="M293 204 Q400 171 510 205" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" opacity=".64"/><rect x="242" y="220" width="316" height="248" rx="98" fill="url(#${prefix}-${id==='aria'?'sky':'visor'})" stroke="#e9ffff" stroke-opacity=".6" stroke-width="5"/><path d="M281 255 Q391 214 486 242" fill="none" stroke="#fff" stroke-width="14" opacity=".16" stroke-linecap="round"/><rect x="258" y="236" width="284" height="209" rx="91" fill="url(#${prefix}-shine)" opacity=".22"/>`;
 }
