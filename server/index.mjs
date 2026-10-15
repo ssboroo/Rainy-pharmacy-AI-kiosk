@@ -24,7 +24,7 @@ const audit=createAuditStore({filePath:path.join(dataDir,'operations-audit.json'
 const backupManager=createBackupManager({directory:path.join(dataDir,'scheduled-backups'),dataDir});
 const db=process.env.DATABASE_URL?createPostgresMirror(process.env.DATABASE_URL):null;
 const offsite=createOffsiteBackup({
- endpoint:process.env.BACKUP_S3_ENDPOINT,region:process.env.BACKUP_S3_REGION,
+ endpoint:process.env.BACKUP_S3_ENDPOINT,region:process.env.BACKUP_S3_REGION,urlStyle:process.env.BACKUP_S3_URL_STYLE,
  bucket:process.env.BACKUP_S3_BUCKET,accessKeyId:process.env.BACKUP_S3_ACCESS_KEY_ID,
  secretAccessKey:process.env.BACKUP_S3_SECRET_ACCESS_KEY,encryptionKey:process.env.BACKUP_ENCRYPTION_KEY
 });
@@ -49,6 +49,7 @@ async function automatedSnapshot(){
       for(const item of branches)await db.sync(item.slug,item);
       operationsState.postgresConnected=true;
       operationsState.postgresError=null;
+      console.log('PostgreSQL branch shadow sync verified:',branches.length+1,'branches');
     }catch(err){operationsState.postgresConnected=false;operationsState.postgresError=err.message;console.warn('Postgres mirror sync failed:',err.message);}
   }
   if(offsite){
@@ -58,6 +59,7 @@ async function automatedSnapshot(){
       operationsState.offsiteLastKey=upload.key;
       operationsState.offsiteLastVerifiedAt=drill.verified?new Date().toISOString():null;
       operationsState.offsiteError=null;
+      console.log('Encrypted offsite backup upload/read/decrypt verified:',drill.verified);
     }catch(err){operationsState.offsiteError=err.message;console.warn('Encrypted offsite backup failed:',err.message);}
   }
   return {...local,postgresMirrored:operationsState.postgresConnected,offsiteVerified:!!operationsState.offsiteLastVerifiedAt,offsiteKey:operationsState.offsiteLastKey};
