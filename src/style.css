@@ -195,3 +195,41 @@ button{touch-action:manipulation}button:focus-visible,input:focus-visible,a:focu
 }
 .portrait.mira .avatar-eye{z-index:3}
 .portrait.mira .avatar-mouth{z-index:3}
+
+/* 2026-10-15 Mira V2: balanced face, airy asymmetric fringe, no oversized hair curtains. */
+.portrait.mira{--shell:#ffe3d6;--body:#ede6fa;--detail:#59446c;--blush:#f2aeb3}
+.portrait.mira .avatar-face{
+ top:43px!important;left:51px!important;width:164px!important;height:151px!important;
+ border:6px solid #634c70!important;border-radius:47% 47% 44% 44%!important;
+ background:linear-gradient(152deg,#ffede3,#f6cfc2)!important;
+ box-shadow:inset 0 -8px 18px #cc949126,0 12px 20px #69426c21!important;
+ overflow:visible!important
+}
+.portrait.mira .avatar-face:before{
+ content:""!important;position:absolute!important;z-index:2!important;
+ top:-16px!important;left:-4px!important;width:160px!important;height:51px!important;
+ background:linear-gradient(140deg,#45324f,#725674 65%,#503957)!important;
+ border-radius:75% 72% 15% 13%!important;
+ clip-path:polygon(0 0,100% 0,100% 65%,87% 43%,70% 62%,53% 88%,40% 71%,20% 83%,5% 100%,0 78%)!important;
+ filter:none!important;box-shadow:none!important
+}
+.portrait.mira .avatar-face:after{
+ content:""!important;position:absolute!important;left:-7px!important;top:32px!important;
+ width:18px!important;height:79px!important;background:linear-gradient(90deg,#4e3857,#745576)!important;
+ clip-path:polygon(0 0,100% 0,95% 78%,50% 100%,0 76%)!important;
+ border-radius:10px!important;transform:rotate(5deg)!important;filter:none!important;z-index:2!important
+}
+.portrait.mira .avatar-brow:after{
+ content:""!important;position:absolute!important;right:-53px!important;top:-36px!important;
+ width:17px!important;height:78px!important;background:linear-gradient(90deg,#705171,#44324e)!important;
+ border-radius:12px!important;transform:rotate(-5deg)!important;
+ clip-path:polygon(0 0,100% 0,100% 78%,43% 100%,0 74%)!important;z-index:2
+}
+.portrait.mira .avatar-eye{top:69px!important;width:21px!important;height:25px!important;z-index:3!important}
+.portrait.mira .eye-left{left:32px!important}.portrait.mira .eye-right{right:32px!important}
+.portrait.mira .avatar-brow{top:58px!important;left:37px!important;width:80px!important;z-index:3!important}
+.portrait.mira .avatar-blush{top:100px!important;width:24px!important;height:11px!important}
+.portrait.mira .avatar-mouth{top:110px!important;left:70px!important;width:18px!important;height:9px!important;z-index:3!important}
+.portrait.mira.speaking .avatar-mouth{top:107px!important;left:50%!important;width:18px!important;height:calc(8px + var(--mouth-level) * 22px)!important}
+.portrait.mira .avatar-body{background:linear-gradient(145deg,#fff,#f3f0ff 60%,#d5c3ee)!important;border-color:#9478af!important}
+@media(prefers-reduced-motion:reduce){.portrait.mira{animation:none!important}}

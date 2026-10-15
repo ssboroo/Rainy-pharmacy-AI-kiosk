@@ -169,3 +169,39 @@ body.immersive-kiosk{overflow:hidden}
  .stage-card{min-height:540px}
  .legal-foot{padding-bottom:20px}
 }
+
+/* Stable stage composition: never clip the bot or chat input just to force a viewport. */
+@media(min-width:1101px) and (min-height:740px){
+ .main-inner{height:calc(100dvh - 66px)!important;padding:9px 2.5% 7px!important;gap:6px!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto auto auto minmax(0,1fr) auto!important}
+ .section-title h1{font-size:clamp(24px,2vw,33px)!important}
+ .section-subtitle{font-size:10px!important}
+ .avatar-section{height:55px!important;min-height:55px!important;padding:5px 8px!important}
+ .avatar-option{height:44px!important;min-height:44px!important;max-height:44px!important}
+ .avatar-thumbnail{height:35px!important;width:34px!important;flex-basis:34px!important}
+ .content-grid{min-height:0!important;height:100%!important;overflow:hidden!important}
+ .stage-card{min-height:0!important;height:100%!important;padding:9px 13px!important;display:flex!important;flex-direction:column!important}
+ .stage-top{flex:0 0 auto}
+ .stage-persona{flex:1 1 auto!important;min-height:0!important;overflow:hidden!important}
+ .stage-persona .portrait{animation:none!important;transform:scale(.84)!important;transform-origin:center center!important;flex:0 0 290px}
+ .stage-caption{flex:0 0 auto!important}
+ .stage-caption .name-row h2{font-size:21px!important}
+ .waveform{height:25px!important;min-height:25px!important}
+ .stage-controls{flex:0 0 auto!important}
+ .kiosk-wake-callout{font-size:13px!important}
+ .mic-action{min-height:43px!important}
+ .right-column{min-height:0!important;height:100%!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important;gap:6px!important}
+ .action-card{min-height:62px!important}
+ .chat-panel{min-height:0!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important}
+ .chat-messages{overflow-y:auto!important;min-height:0!important}
+ .legal-foot{padding:3px 0!important;margin:0!important;font-size:9px!important}
+}
+@media(min-width:1101px) and (max-height:739px){
+ .main-inner{overflow-y:auto!important;overflow-x:hidden!important;height:calc(100dvh - 66px)!important}
+ .stage-card{min-height:525px!important}.stage-persona{min-height:250px!important}
+ .right-column{min-height:525px!important}
+}
+@media(max-width:1100px){
+ .main-inner{height:auto!important;min-height:0!important;overflow:visible!important}
+ .content-grid{overflow:visible!important}
+ .stage-persona{min-height:260px!important}
+}
