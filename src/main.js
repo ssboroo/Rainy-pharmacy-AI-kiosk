@@ -541,7 +541,37 @@ async function loadPremium2D5(){
     layer.remove();
   }
 }
+function closeSidebarDrawer({restoreFocus=false}={}){
+  const wasOpen=document.body.classList.contains('sidebar-open');
+  document.body.classList.remove('sidebar-open');
+  $('sidebarOverlay').hidden=true;
+  $('sidebarToggle').setAttribute('aria-expanded','false');
+  if(wasOpen&&restoreFocus)$('sidebarToggle').focus();
+}
+function bindSidebarDrawer(){
+  const query=window.matchMedia('(orientation: portrait), (max-width: 850px)');
+  $('sidebarToggle').onclick=()=>{
+    if(!query.matches)return;
+    const open=!document.body.classList.contains('sidebar-open');
+    document.body.classList.toggle('sidebar-open',open);
+    $('sidebarOverlay').hidden=!open;
+    $('sidebarToggle').setAttribute('aria-expanded',String(open));
+    if(open)$('sidebarClose').focus();
+  };
+  $('sidebarClose').onclick=()=>closeSidebarDrawer({restoreFocus:true});
+  $('sidebarOverlay').onclick=()=>closeSidebarDrawer({restoreFocus:true});
+  ['homeNav','catalogNav','cameraNav','voiceNav'].forEach(id=>{
+    $(id).addEventListener('click',()=>closeSidebarDrawer());
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&document.body.classList.contains('sidebar-open')){
+      event.preventDefault();closeSidebarDrawer({restoreFocus:true});
+    }
+  });
+  window.addEventListener('resize',()=>{if(!query.matches)closeSidebarDrawer();});
+}
 function wire(){
+  bindSidebarDrawer();
   $('medicineLiveClose').onclick=clearMedicineCard;
   $('homeNav').onclick=()=>{closeModal();window.scrollTo({top:0,behavior:'smooth'});};
   $('catalogNav').onclick=catalogModal;$('medicineAction').onclick=catalogModal;
