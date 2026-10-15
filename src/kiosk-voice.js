@@ -60,7 +60,7 @@ export class WakeGreetingListener {
         const result=event.results[i];
         if(!result.isFinal)continue;
         const transcript=result[0]?.transcript||'';
-        if(isWakeGreeting(transcript)){
+        if(isWakeGreeting(transcript)&&((result[0]?.confidence||0)===0||(result[0]?.confidence||0)>=0.78)){
           this.pause();
           this.onState('activated');
           Promise.resolve().then(()=>this.onWake(transcript)).catch(()=>this.onFailure('wake-error'));
