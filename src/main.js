@@ -4,6 +4,7 @@ import {findMedicineMention} from './medicine-panel.js';
 import './style.css';
 import './kiosk.css';
 import './avatar-25d.css';
+import './kiosk-finish.css';
 import {IllustratedAvatar25D} from './avatar-25d.js';
 import {WakeGreetingListener} from './kiosk-voice.js';
 import {toneForState} from './kiosk-policy.js';
