@@ -333,6 +333,15 @@ async function startLocalVoiceSession(fromWake){
   recognition=new SpeechRecognition();
   const session=recognition;
   session.lang='mn-MN';session.continuous=true;session.interimResults=false;
+  // Chrome contextual speech phrase hints, supported browsers only.
+  // Names come from this tenant's verified catalogue, not global drug guesses.
+  if('phrases' in session&&typeof window.SpeechRecognitionPhrase==='function'){
+    try{
+      const words=[...new Set(medicineNameIndex.flatMap(x=>[x.name,...(x.aliases||[])]))]
+        .filter(x=>typeof x==='string'&&x.length>=3&&x.length<80).slice(0,50);
+      session.phrases=words.map(x=>new window.SpeechRecognitionPhrase(x,5));
+    }catch{/* Unsupported implementation: continue without phrase hints. */}
+  }
   session.onresult=async event=>{
     for(let i=event.resultIndex||0;i<event.results.length;i++){
       if(!event.results[i].isFinal)continue;
@@ -399,6 +408,7 @@ async function startVoice(fromWake=false){
         onError:()=>{trackAnalytics('voiceFailed');toast('ElevenLabs холболт тасарлаа. Эм зүйчээс лавлах эсвэл бичгээр асууна уу.');},
         onModeChange:mode=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
         onMessage:message=>{
+          if(startedAt!==visitorEpoch)return; // Old patient's delayed voice output must not enter a fresh session.
           const text=message.message;
           // Defense-in-depth: an external ElevenLabs Agent must also have
           // pharmacist-reviewed prompts. This client cannot mute audio already
