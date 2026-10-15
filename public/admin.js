@@ -332,7 +332,7 @@ async function refreshOrganization(){
  if(branchSlug)return;
  try{
   const days=encodeURIComponent($('orgWindow').value);
-  const [report,sla,audit]=await Promise.all([api('organization/report?days='+days),api('organization/sla'),api('audit')]);
+  const [report,sla,audit,backup]=await Promise.all([api('organization/report?days='+days),api('organization/sla'),api('audit'),api('organization/backups')]);
   const counts=$('orgMetrics');counts.replaceChildren();
   for(const [label,value] of [
    ['Нийт салбар',report.rows.length],['Нийт асуулт',report.totals.questionsAsked],
@@ -352,6 +352,7 @@ async function refreshOrganization(){
    table.append(tr);
   }
   $('slaStatus').textContent='Төхөөрөмж: '+sla.deviceCount+' · Онлайн: '+sla.online+' · Офлайн: '+sla.offline+' · Гэрээний uptime: хэмжигдээгүй';
+  $('backupStatus').textContent='Хадгалсан хуулбар: '+backup.files.length+' · Сүүлийн: '+(backup.files[0]||'Байхгүй')+' · Off-site: үгүй';
   const log=$('operationsAudit');log.replaceChildren();
   for(const item of audit.events.slice(0,18)){
    const div=document.createElement('div');div.className='ops-audit-item';
@@ -363,3 +364,9 @@ async function refreshOrganization(){
 }
 $('orgRefresh').onclick=refreshOrganization;
 $('orgWindow').onchange=refreshOrganization;
+
+$('backupNow').onclick=async()=>{
+ const button=$('backupNow');button.disabled=true;
+ try{const saved=await api('organization/backups/create','POST',{});show('Backup үүслээ: '+saved.backup.filename+' · Энэ нь local volume хуулбар.');await refreshOrganization();}
+ catch(error){show('Backup алдаа: '+error.message);}finally{button.disabled=false;}
+};
