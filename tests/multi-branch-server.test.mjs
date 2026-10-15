@@ -19,7 +19,7 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
   const token='master-random-token-with-more-than-24-characters';
   const child=spawn(process.execPath,['server/index.mjs'],{
     cwd:new URL('../',import.meta.url),
-    env:{...process.env,PORT:String(port),DATA_DIR:dir,ADMIN_TOKEN:token,ELEVENLABS_API_KEY:'',VOICE_AGENT_CLINICAL_APPROVED:'false'},
+    env:{...process.env,PORT:String(port),DATA_DIR:dir,ADMIN_TOKEN:token,ELEVENLABS_API_KEY:'test-provider-key',VOICE_AGENT_CLINICAL_APPROVED:'true',VOICE_AGENT_APPROVED_BRANCHES:''},
     stdio:['ignore','pipe','pipe']
   });
   let logs='';
@@ -68,6 +68,9 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal(b2.data.pharmacyName,'Үндсэн бус B');
     assert.equal(b2.data.logoData,'');
     assert.equal(b1.data.branchSlug,'one-branch');
+    assert.equal(b1.data.voiceReady,false,'global clinical gate alone may not activate a new tenant');
+    assert.equal(b2.data.voiceReady,false,'second branch also requires explicit clinic approval');
+    assert.equal((await call('/api/agent/signed-url?branch=one-branch')).status,503,'unapproved branch must never mint voice sessions');
     assert.equal(b2.data.branchSlug,'two-branch');
     const item={id:'only-a',name:'Онцгой нэмэлт A',aliases:['speciala'],category:'Тест',description:'Тайлбар',verified:false};
     assert.equal((await call('/api/admin/catalog?branch=one-branch',{method:'PUT',auth:key1,body:[item]})).status,200);
