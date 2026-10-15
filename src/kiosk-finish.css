@@ -132,3 +132,98 @@
 @media(prefers-reduced-motion:reduce){
  #avatar25 .rainy-2d5-portrait{transform:none!important}
 }
+
+/* Portrait kiosk 9:16, 10:16, tablets: no horizontal sidebar, no clipped cards.
+   Placed last in CSS import order to override older desktop nav rules. */
+@media (orientation:portrait), (max-width:850px){
+  html,body{width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important;height:auto!important}
+  body:not(.immersive-kiosk) .app-shell{
+    display:flex!important;flex-direction:column!important;
+    width:100%!important;max-width:100%!important;height:auto!important;min-height:100dvh!important;
+    overflow:visible!important;
+  }
+  body:not(.immersive-kiosk) .sidebar{
+    position:relative!important;inset:auto!important;z-index:2!important;
+    width:100%!important;max-width:100%!important;flex:0 0 auto!important;
+    min-height:0!important;height:auto!important;overflow:visible!important;
+    padding:12px clamp(12px,3vw,25px)!important;display:flex!important;
+    flex-direction:column!important;gap:9px!important;box-sizing:border-box!important;
+  }
+  body:not(.immersive-kiosk) .brand-mark{
+    display:flex!important;flex-direction:row!important;align-items:center!important;
+    gap:9px!important;padding:0!important;width:100%!important;min-width:0!important;
+  }
+  body:not(.immersive-kiosk) .brand-mark>div{display:block!important}
+  body:not(.immersive-kiosk) .brand-mark strong{font-size:24px!important}
+  body:not(.immersive-kiosk) .sidebar-brand-logo{
+    width:80px!important;max-width:80px!important;height:45px!important;max-height:45px!important;
+    object-fit:contain!important;padding:5px!important;
+  }
+  body:not(.immersive-kiosk) .sidebar-nav{
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    width:100%!important;min-width:0!important;gap:7px!important;overflow:visible!important;
+  }
+  body:not(.immersive-kiosk) .nav-label{display:none!important}
+  body:not(.immersive-kiosk) .nav-item{
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    justify-content:center!important;gap:5px!important;min-width:0!important;width:100%!important;
+    min-height:62px!important;height:auto!important;padding:7px 3px!important;
+    text-align:center!important;white-space:normal!important;overflow:hidden!important;
+    border-radius:13px!important;box-sizing:border-box!important;
+  }
+  body:not(.immersive-kiosk) .nav-icon{
+    flex:0 0 26px!important;width:29px!important;height:29px!important;
+    min-width:29px!important;display:grid!important;place-items:center!important;
+  }
+  body:not(.immersive-kiosk) .nav-icon svg{width:19px!important;height:19px!important}
+  body:not(.immersive-kiosk) .nav-text{
+    display:block!important;min-width:0!important;max-width:100%!important;
+    font-size:clamp(9px,1.8vw,12px)!important;line-height:1.2!important;
+    word-break:normal!important;overflow-wrap:anywhere!important;
+    text-overflow:clip!important;white-space:normal!important;font-weight:700!important;
+  }
+  body:not(.immersive-kiosk) .side-assistance,
+  body:not(.immersive-kiosk) .sidebar-footer,
+  body:not(.immersive-kiosk) .admin-link{display:none!important}
+  body:not(.immersive-kiosk) .main-area{
+    display:flex!important;flex:1 1 auto!important;width:100%!important;max-width:100%!important;
+    min-width:0!important;height:auto!important;overflow:visible!important;
+  }
+  body:not(.immersive-kiosk) .topbar{width:100%!important;min-width:0!important;min-height:51px!important;height:auto!important;flex:0 0 auto!important}
+  body:not(.immersive-kiosk) .main-inner{
+    display:flex!important;flex-direction:column!important;gap:11px!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    height:auto!important;min-height:0!important;overflow:visible!important;
+    padding:14px clamp(10px,3vw,24px) 24px!important;box-sizing:border-box!important;
+  }
+  body:not(.immersive-kiosk) .content-grid{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    gap:14px!important;min-width:0!important;width:100%!important;height:auto!important;
+    min-height:0!important;overflow:visible!important;
+  }
+  body:not(.immersive-kiosk) .stage-card{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    height:auto!important;min-height:510px!important;max-height:none!important;
+    overflow:hidden!important;box-sizing:border-box!important;
+  }
+  body:not(.immersive-kiosk) .stage-persona{min-height:270px!important}
+  body:not(.immersive-kiosk) .right-column{
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:0!important;overflow:visible!important;display:flex!important;
+    flex-direction:column!important;gap:13px!important;
+  }
+  body:not(.immersive-kiosk) .action-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body:not(.immersive-kiosk) .action-card{min-width:0!important}
+  body:not(.immersive-kiosk) .chat-panel{width:100%!important;min-height:260px!important;height:340px!important}
+  body:not(.immersive-kiosk) .chat-messages{overflow-y:auto!important;min-height:0!important}
+  body:not(.immersive-kiosk) .avatar-section{width:100%!important;min-width:0!important}
+  body:not(.immersive-kiosk) .legal-foot{width:100%!important;white-space:normal!important;padding:10px 0 20px!important}
+}
+@media (orientation:portrait) and (min-width:600px){
+  body:not(.immersive-kiosk) .stage-card{min-height:570px!important}
+  body:not(.immersive-kiosk) .chat-panel{height:410px!important}
+}
+@media (max-width:420px){
+  body:not(.immersive-kiosk) .nav-item{min-height:56px!important}
+  body:not(.immersive-kiosk) .nav-text{font-size:9px!important}
+}
