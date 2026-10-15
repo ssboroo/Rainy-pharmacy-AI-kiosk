@@ -546,6 +546,7 @@ function wire(){
   $('homeNav').onclick=()=>{closeModal();window.scrollTo({top:0,behavior:'smooth'});};
   $('catalogNav').onclick=catalogModal;$('medicineAction').onclick=catalogModal;
   $('cameraNav').onclick=cameraModal;$('cameraAction').onclick=cameraModal;
+  $('newVisitorBtn').onclick=()=>{void resetVisitorSession();};
   $('voiceNav').onclick=()=>startVoice();$('voiceAction').onclick=()=>startVoice();$('micBtn').onclick=()=>startVoice();
   $('setupMicrophoneBtn').onclick=enableMicFromStaff;
   $('kioskCatalogBtn').onclick=catalogModal;
