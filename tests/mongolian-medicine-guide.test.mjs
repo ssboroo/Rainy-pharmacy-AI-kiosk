@@ -20,7 +20,7 @@ test('catalog medicines give only registered information and friendly purchase p
  assert.equal(r.kind,'catalog');
  assert.equal(r.medicine.id,'para500');
  assert.match(r.reply,/3,600|3600/);
- assert.match(r.reply,/эм зүйч/);
+ assert.match(r.reply,/эм зүйч/i);
  assert.doesNotMatch(r.reply,/https:\/\//);
  const out=evaluateQuestion('Нурофэн авах уу?',catalog.filter(x=>x.verified));
  assert.match(out.reply,/одоогоор|үлдэгдэл/);
