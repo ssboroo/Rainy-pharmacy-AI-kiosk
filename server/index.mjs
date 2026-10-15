@@ -97,8 +97,18 @@ async function external(url,opts){
   return response.json();
 }
 const agentId=ctx=>ctx.settings.agentId||(ctx===defaultBranch?process.env.ELEVENLABS_AGENT_ID:'')||'';
+function voiceEnvironment(ctx){
+  // Existing clinic-reviewed default remains unchanged. Newly onboarded branches
+  // need an explicit *per-branch* provider-side professional review approval,
+  // otherwise a global gate could accidentally activate an unreviewed assistant.
+  if(ctx===defaultBranch)return process.env;
+  const approved=String(process.env.VOICE_AGENT_APPROVED_BRANCHES||'').split(',')
+    .map(x=>x.trim()).filter(Boolean);
+  const allowed=process.env.VOICE_AGENT_CLINICAL_APPROVED==='true'&&approved.includes(ctx.slug);
+  return {...process.env,VOICE_AGENT_CLINICAL_APPROVED:allowed?'true':'false'};
+}
 function agentDiagnostics(ctx){
-  const status=voiceConnectionStatus(process.env,agentId(ctx));
+  const status=voiceConnectionStatus(voiceEnvironment(ctx),agentId(ctx));
   return {...status,agentIdMasked:status.agentConfigured?(agentId(ctx).slice(0,6)+'••••'+agentId(ctx).slice(-4)):'',message:!status.agentConfigured?'ElevenLabs Agent ID дутуу.':!status.keyConfigured?'Railway дээр ELEVENLABS_API_KEY дутуу.':!status.clinicalApproved?'Эмийн аюулгүй байдлыг эм зүйч баталгаажуулсны дараа VOICE_AGENT_CLINICAL_APPROVED=true тохируулна.':'Voice Agent яриа эхлүүлэхэд бэлэн.'};
 }
 async function checkAgentConnection(ctx){
@@ -116,7 +126,7 @@ async function checkAgentConnection(ctx){
   }
 }
 async function signedUrl(ctx){
-  if(!voiceAllowed(process.env,agentId(ctx)))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
+  if(!voiceAllowed(voiceEnvironment(ctx),agentId(ctx)))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
   const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId(ctx));
   const result=await external(url,{headers:{'xi-api-key':process.env.ELEVENLABS_API_KEY}});
   if(typeof result.signed_url!=='string')throw Object.assign(Error('Signed URL олдсонгүй'),{code:502});
@@ -175,7 +185,7 @@ async function handle(req,res){
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
       pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',
-      avatars:AVATARS,voiceReady:voiceAllowed(process.env,agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
+      avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:ctx.catalog.some(v=>!v.verified)
     });
     if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',ctx.catalog),demoMode:ctx.catalog.some(v=>!v.verified)});
