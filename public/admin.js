@@ -176,6 +176,12 @@ async function loadBranches(){
     const selectedOwner=ownerSelect.value;
     ownerSelect.replaceChildren(new Option('Салбар сонгох',''));
     for(const row of data.branches)ownerSelect.add(new Option(row.name+' · '+row.slug,row.slug));
+    const credentialSelect=$('ownerCredentialSlug');
+    const previousCredential=credentialSelect.value;
+    credentialSelect.replaceChildren(new Option('Байгууллага сонгох',''));
+    for(const row of data.branches)credentialSelect.add(new Option(row.name+' · '+row.slug,row.slug));
+    if(data.branches.some(row=>row.slug===previousCredential))credentialSelect.value=previousCredential;
+
     const catalogSelect=$('ownerCatalogSlug');
     const oldCatalog=catalogSelect.value;
     catalogSelect.replaceChildren(new Option('Байгууллага сонгох',''));
@@ -373,7 +379,7 @@ async function refreshOrganization(){
   const table=$('orgRows');table.replaceChildren();
   for(const item of report.rows){
    const tr=document.createElement('tr');
-   for(const value of [item.name,item.subscription.status,item.metrics.questionsAsked,item.metrics.verifiedCatalogAnswers,item.metrics.pharmacistReferrals,item.devices.online+'/'+item.devices.total]){
+   for(const value of [item.name,item.subscription.status,item.metrics.questionsAsked,item.metrics.verifiedCatalogAnswers,item.metrics.pharmacistReferrals,item.devices.online+'/'+item.devices.total,item.metrics.voiceConnected||0,'Нийлүүлэгчийн тайлан шаардлагатай']){
     const td=document.createElement('td');td.textContent=String(value);tr.append(td);
    }
    table.append(tr);
@@ -555,4 +561,26 @@ $('ownerCatalogSave').onclick=async()=>{
   const result=await api('branches/catalog','PUT',{slug,items});
   show(result.count+' эмийн мэдээлэл зөвхөн '+slug+' байгууллагад хадгалагдлаа.');
  }catch(e){show('Каталог хадгалах алдаа: '+e.message);}
+};
+
+$('ownerCredentialForm').onsubmit=async event=>{
+ event.preventDefault();
+ const slug=$('ownerCredentialSlug').value;
+ if(!slug){show('Байгууллага сонгоно уу.');return;}
+ const loginName=$('ownerLoginName').value.trim();
+ const loginCode=$('ownerLoginCode').value;
+ const adminToken=$('ownerAdminToken').value;
+ if(!loginName&&!loginCode&&!adminToken){show('Солих мэдээлэл оруулна уу.');return;}
+ if(!confirm(slug+' байгууллагын хуучин нэвтрэх мэдээллийг хүчингүй болгох уу?'))return;
+ const body={slug};
+ if(loginName)body.loginName=loginName;
+ if(loginCode)body.loginCode=loginCode;
+ if(adminToken)body.adminToken=adminToken;
+ try{
+  await api('branches/credentials','PUT',body);
+  $('ownerLoginName').value='';
+  $('ownerLoginCode').value='';
+  $('ownerAdminToken').value='';
+  show(slug+' байгууллагын нэвтрэх мэдээлэл шинэчлэгдлээ. Шинэ код/токеныг аюулгүй хадгална уу.');
+ }catch(error){show('Нэвтрэх мэдээлэл солих алдаа: '+error.message);}
 };
