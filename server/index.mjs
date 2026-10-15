@@ -8,6 +8,8 @@ import {createBranchRegistry} from './branches.mjs';
 import {createDeviceStore} from './devices.mjs';
 import {createAuditStore,organizationReport,slaSnapshot} from './operations.mjs';
 import {createBackupManager} from './backups.mjs';
+import {createPostgresMirror} from './postgres-mirror.mjs';
+import {createOffsiteBackup} from './offsite-backup.mjs';
 import {parseInventorySnapshot,applyInventorySnapshot,buildProviderStatus,shouldEscalateVoiceText} from './phase2.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
@@ -20,6 +22,13 @@ const analytics=createAnalyticsStore({filePath:path.join(dataDir,'analytics.json
 const defaultDevices=createDeviceStore({filePath:path.join(dataDir,'devices.json')});
 const audit=createAuditStore({filePath:path.join(dataDir,'operations-audit.json')});
 const backupManager=createBackupManager({directory:path.join(dataDir,'scheduled-backups'),dataDir});
+const db=process.env.DATABASE_URL?createPostgresMirror(process.env.DATABASE_URL):null;
+const offsite=createOffsiteBackup({
+ endpoint:process.env.BACKUP_S3_ENDPOINT,region:process.env.BACKUP_S3_REGION,
+ bucket:process.env.BACKUP_S3_BUCKET,accessKeyId:process.env.BACKUP_S3_ACCESS_KEY_ID,
+ secretAccessKey:process.env.BACKUP_S3_SECRET_ACCESS_KEY,encryptionKey:process.env.BACKUP_ENCRYPTION_KEY
+});
+const operationsState={postgresConnected:false,offsiteLastVerifiedAt:null,offsiteLastKey:null,offsiteError:null,postgresError:null};
 const port=Number(process.env.PORT||3000);
 const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:DEMO_CATALOG});
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
@@ -32,7 +41,26 @@ async function automatedSnapshot(){
     slug:row.slug,name:row.name,subscription:row.subscription,
     ...scrub(registry.get(row.slug))
   }));
-  return backupManager.snapshot({default: scrub(defaultBranch),branches});
+  const payload={default:scrub(defaultBranch),branches};
+  const local=await backupManager.snapshot(payload);
+  if(db){
+    try{
+      await db.sync('default',payload.default);
+      for(const item of branches)await db.sync(item.slug,item);
+      operationsState.postgresConnected=true;
+      operationsState.postgresError=null;
+    }catch(err){operationsState.postgresConnected=false;operationsState.postgresError=err.message;console.warn('Postgres mirror sync failed:',err.message);}
+  }
+  if(offsite){
+    try{
+      const upload=await offsite.save(payload);
+      const drill=await offsite.restoreDrill(upload.key);
+      operationsState.offsiteLastKey=upload.key;
+      operationsState.offsiteLastVerifiedAt=drill.verified?new Date().toISOString():null;
+      operationsState.offsiteError=null;
+    }catch(err){operationsState.offsiteError=err.message;console.warn('Encrypted offsite backup failed:',err.message);}
+  }
+  return {...local,postgresMirrored:operationsState.postgresConnected,offsiteVerified:!!operationsState.offsiteLastVerifiedAt,offsiteKey:operationsState.offsiteLastKey};
 }
 async function loadData(){
   await mkdir(dataDir,{recursive:true});
@@ -287,9 +315,21 @@ async function handle(req,res){
       if(route==='/api/admin/subscription'){
         if(req.method==='GET')return respond(res,200,{subscription:entitlement,history:hasBranch?registry.history(url.searchParams.get('branch')):[]});
       }
+      if(route==='/api/admin/organization/storage'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        return respond(res,200,{postgresConfigured:!!db,postgresMirrorConnected:operationsState.postgresConnected,
+          postgresStatus:operationsState.postgresError?'unavailable':'connected-or-pending',
+          postgresRole:'shadow-mirror-not-primary',offsiteConfigured:!!offsite,
+          offsiteLastVerifiedAt:operationsState.offsiteLastVerifiedAt,
+          lastOffsiteError:operationsState.offsiteError?'Last backup check failed':null});
+      }
       if(route==='/api/admin/organization/backups'&&req.method==='GET'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
-        return respond(res,200,{files:await backupManager.list(),location:'local-volume',offsiteReplicated:false,restoreTested:false});
+        return respond(res,200,{files:await backupManager.list(),location:'local-volume',
+          offsiteConfigured:!!offsite,offsiteVerified:!!operationsState.offsiteLastVerifiedAt,
+          offsiteLastVerifiedAt:operationsState.offsiteLastVerifiedAt,
+          postgresMirrorConnected:operationsState.postgresConnected,livePrimary:'existing-file-store',
+          restoreTested:!!operationsState.offsiteLastVerifiedAt});
       }
       if(route==='/api/admin/organization/backups/file'&&req.method==='GET'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
@@ -299,7 +339,7 @@ async function handle(req,res){
       if(route==='/api/admin/organization/backups/create'&&req.method==='POST'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
         const result=await automatedSnapshot();
-        return respond(res,201,{backup:result,offsiteReplicated:false});
+        return respond(res,201,{backup:result,offsiteVerified:result.offsiteVerified});
       }
       if(route==='/api/admin/organization/report'&&req.method==='GET'){
         if(hasBranch)return respond(res,403,{error:'Төв админ шаардлагатай.'});
@@ -429,6 +469,10 @@ await analytics.load();
 await defaultDevices.load();
 await registry.load();
 await audit.load();
+if(db){
+ try{await db.init();operationsState.postgresConnected=true;}
+ catch(err){operationsState.postgresError=err.message;console.warn('PostgreSQL init pending:',err.message);}
+}
 // A local snapshot at boot and every 24h. This does not replace off-site backup.
 try{await automatedSnapshot();}catch(err){console.warn('Local backup unavailable:',err.message);}
 setInterval(()=>automatedSnapshot().catch(err=>console.warn('Local backup failed:',err.message)),86400000).unref();
