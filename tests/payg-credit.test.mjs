@@ -29,7 +29,7 @@ test('PAYG credit sessions use persistent atomic reservations, isolation, and re
   assert.equal((await registry.refundCredit('payg-one',ticket.eventId)).balance,1,'refund must be idempotent');
   const again=createBranchRegistry({dataDir:dir,defaultCatalog:[]});await again.load();
   assert.equal(again.subscription('payg-one').credits,1,'reboot retains credits');
-  assert.equal(again.subscription('payg-two').credits,0);
+  assert.equal(again.subscription('payg-two').credits,null);
   assert.equal(again.creditHistory('payg-one').some(x=>x.action==='refund'),true);
   assert.equal(JSON.stringify(again.list()).includes('manual prepaid topup'),false,'note not leaked in list');
  }finally{await rm(dir,{recursive:true,force:true});}
@@ -46,5 +46,19 @@ test('credit rules prevent negative balances, huge topups, and time-based expiry
   await r.grantCredits('payg-three',{amount:1});
   assert.equal(r.subscription('payg-three',new Date('2099-05-01')).active,true);
   assert.equal(r.subscription('payg-three',new Date('2099-05-01')).expiresAt,null);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('replayed manual topups cannot double-credit or reuse idempotency keys with different amounts',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'rainy-payg-idem-'));
+ try{
+  const r=createBranchRegistry({dataDir:dir,defaultCatalog:[]});await r.load();
+  await r.create({slug:'idem-one',name:'PAYG бүртгэл'});
+  const requestId='70a02d39-baba-4899-940d-9d323d1732a1';
+  assert.equal((await r.grantCredits('idem-one',{amount:5,requestId})).balance,5);
+  assert.equal((await r.grantCredits('idem-one',{amount:5,requestId})).balance,5);
+  await assert.rejects(r.grantCredits('idem-one',{amount:8,requestId}));
+  const restart=createBranchRegistry({dataDir:dir,defaultCatalog:[]});await restart.load();
+  assert.equal((await restart.grantCredits('idem-one',{amount:5,requestId})).balance,5);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
