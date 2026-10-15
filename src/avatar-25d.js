@@ -1,3 +1,5 @@
+import {createAvatarIdleDirector} from './avatar-idle.js';
+
 export const AVATAR_STYLES=Object.freeze({
   nomi:{identity:'pearl-mint-robot',name:'Номи',kind:'robot',tint:'#73dbc3',light:'#f4fffa',body:'#55bfae',deep:'#1e5e6c',eye:'#40ebdb',hair:'#397677'},
   mira:{identity:'human-sakura-guide',name:'Мира',kind:'human',tint:'#b9a2f3',light:'#ffedf5',body:'#9589d9',deep:'#604c76',eye:'#8463a1',hair:'#5b435f'},
@@ -83,12 +85,24 @@ export function avatarMarkup(id,prefix='rainy25'){
         <path d="M471 625 v18 M462 634 h18" stroke="#298d69" stroke-width="5" stroke-linecap="round"/>
       </g>`:''}
       <g class="${({nomi:'avatar25-antenna',mira:'avatar25-human-hair',kiki:'avatar25-fox-ears',aria:'avatar25-hologram-halo',bobo:'avatar25-bunny-ears'})[valid]}">${headAccessory(valid,p,token)}</g>
+      <g class="avatar25-idle-arms" aria-hidden="true">
+        <g class="avatar25-idle-arm-left">
+          <path d="M288 517 Q255 490 244 435" fill="none" stroke="${p.body}" stroke-width="23" stroke-linecap="round"/>
+          <ellipse cx="242" cy="422" rx="18" ry="23" fill="${p.light}" stroke="${p.tint}" stroke-width="4"/>
+        </g>
+        <g class="avatar25-idle-arm-right">
+          <path d="M513 517 Q548 488 557 435" fill="none" stroke="${p.body}" stroke-width="23" stroke-linecap="round"/>
+          <ellipse cx="558" cy="422" rx="18" ry="23" fill="${p.light}" stroke="${p.tint}" stroke-width="4"/>
+        </g>
+      </g>
       <g class="avatar25-head 2d5-head">
         ${headShape(valid,p,token)}
         <g class="avatar25-gaze">${eyeMarkup}</g>
         <ellipse cx="${valid==='mira'?319:283}" cy="${valid==='mira'?426:413}" rx="23" ry="12" fill="${cheek}" opacity=".3"/>
         <ellipse cx="${valid==='mira'?480:517}" cy="${valid==='mira'?426:413}" rx="23" ry="12" fill="${cheek}" opacity=".3"/>
         <g class="avatar25-mouth-group">
+          <ellipse class="avatar25-idle-yawn-mouth" cx="400" cy="450" rx="18" ry="4"
+            fill="#713d5d" stroke="${p.tint}" stroke-width="3" opacity="0"/>
           <path class="avatar25-mouth-smile" d="${valid==='mira'?'M376 449 Q401 472 424 448':'M368 428 Q399 464 432 428'}" stroke="${valid==='mira'?'#b27681':p.eye}" stroke-width="9" fill="none" stroke-linecap="round"/>
           <ellipse class="avatar25-mouth-open 2d5-mouth-open" cx="400" cy="${valid==='mira'?455:438}" rx="18" ry="6" fill="${valid==='mira'?'#8c495e':'#173a43'}" stroke="${valid==='mira'?'#bd8190':p.tint}" stroke-width="3" opacity="0"/>
           <ellipse class="avatar25-mouth-tongue" cx="400" cy="${valid==='mira'?469:448}" rx="9" ry="4" fill="#f7a7be" opacity="0"/>
@@ -104,6 +118,18 @@ export class IllustratedAvatar25D{
   constructor(container){
     this.container=container;
     this.current='nomi';this.state='ready';this.level=0;
+    this.idle=createAvatarIdleDirector({
+      onGesture:name=>{this.container.dataset.idleGesture=name;},
+      onRest:()=>{delete this.container.dataset.idleGesture;}
+    });
+    this.idle.setState('loading');
+    this.visibilityChanged=()=>this.idle.setVisible(!document.hidden);
+    document.addEventListener('visibilitychange',this.visibilityChanged);
+    this.motionQuery=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    this.motionChanged=()=>this.idle.setReducedMotion(!!this.motionQuery?.matches);
+    this.motionQuery?.addEventListener?.('change',this.motionChanged);
+    this.motionChanged();
+    this.visibilityChanged();
     this.move=e=>this.onPointer(e);
     this.leave=()=>{container.style.removeProperty('--look-x');container.style.removeProperty('--look-y');container.style.removeProperty('--head-turn');};
     container.addEventListener('pointermove',this.move,{passive:true});
@@ -115,9 +141,10 @@ export class IllustratedAvatar25D{
     this.container.innerHTML=avatarMarkup(this.current,'rainy25-live');
     this.mouth=this.container.querySelector('.avatar25-mouth-open');
     this.tongue=this.container.querySelector('.avatar25-mouth-tongue');
-    this.setState(this.state);return true;
+    this.idle.touch();this.setState(this.state);return true;
   }
-  setState(state){this.state=state;this.container.dataset.expression=expressionFor(state);this.setLevel(this.level);}
+  setState(state){this.state=state;this.container.dataset.expression=expressionFor(state);this.idle.setState(state);this.setLevel(this.level);}
+  notifyActivity(){this.idle.touch();}
   setLevel(input){
     this.level=normalizeVoiceEnergy(input);
     const active=this.state==='speaking';
@@ -131,7 +158,8 @@ export class IllustratedAvatar25D{
     if(this.tongue)this.tongue.setAttribute('opacity',active&&magnitude>.36?'.9':'0');
   }
   onPointer(e){
-    if(!e.isPrimary||window.matchMedia?.('(prefers-reduced-motion:reduce)').matches)return;
+    if(!e.isPrimary||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
+    this.notifyActivity();
     const rect=this.container.getBoundingClientRect();
     if(!rect.width||!rect.height)return;
     const x=Math.max(-1,Math.min(1,2*(e.clientX-rect.left)/rect.width-1));
@@ -141,5 +169,12 @@ export class IllustratedAvatar25D{
     this.container.style.setProperty('--head-turn',(x*2).toFixed(1)+'deg');
   }
   resize(){}
-  dispose(){this.container.removeEventListener('pointermove',this.move);this.container.removeEventListener('pointerleave',this.leave);this.container.replaceChildren();}
+  dispose(){
+    this.idle.dispose();
+    document.removeEventListener('visibilitychange',this.visibilityChanged);
+    this.motionQuery?.removeEventListener?.('change',this.motionChanged);
+    this.container.removeEventListener('pointermove',this.move);
+    this.container.removeEventListener('pointerleave',this.leave);
+    this.container.replaceChildren();
+  }
 }
