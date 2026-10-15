@@ -182,9 +182,14 @@ async function handle(req,res){
   let ctx;
   try{
     ctx=hasBranch?registry.get(url.searchParams.get('branch')):defaultBranch;
+    const entitlement=hasBranch?registry.subscription(url.searchParams.get('branch')):{status:'active',active:true,expiresAt:null,plan:'legacy'};
+    // Branch admins may continue managing the catalog after expiration;
+    // however no public AI, inventory, tracking or vision endpoints run.
+    if(hasBranch&&!entitlement.active&&route.startsWith('/api/')&&!route.startsWith('/api/admin/')&&route!=='/api/health'&&route!=='/api/bootstrap')
+      return respond(res,403,{error:'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
-      pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',
+      pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
       avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:ctx.catalog.some(v=>!v.verified)
     });
@@ -245,6 +250,20 @@ async function handle(req,res){
         return respond(res,503,{error:'ADMIN_TOKEN тохируулаагүй.'});
       const authorized=hasBranch?registry.authorize(url.searchParams.get('branch'),bearer):isAdmin(req);
       if(!authorized)return respond(res,401,{error:'Зөвшөөрөлгүй.'});
+      if(route==='/api/admin/subscription'){
+        if(req.method==='GET')return respond(res,200,{subscription:entitlement,history:hasBranch?registry.history(url.searchParams.get('branch')):[]});
+      }
+      if(route==='/api/admin/branches/subscription'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ эрх сунгана.'});
+        if(req.method==='PUT'){
+          const input=await bodyJson(req,2000);
+          if(!input||typeof input!=='object'||typeof input.slug!=='string')return respond(res,400,{error:'Салбарын код шаардлагатай.'});
+          const result=await registry.grantSubscription(input.slug,{
+            status:input.status,expiresAt:input.expiresAt,plan:input.plan,note:input.note
+          });
+          return respond(res,200,{subscription:result});
+        }
+      }
       if(route==='/api/admin/branches'){
         if(hasBranch)return respond(res,403,{error:'Салбарын эрхээр бусад салбарын мэдээлэл харах боломжгүй.'});
         if(req.method==='GET')return respond(res,200,{branches:registry.list()});
