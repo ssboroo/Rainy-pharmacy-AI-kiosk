@@ -166,6 +166,33 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     writes=work.then(()=>{},()=>{});
     return work;
   }
+  async function rotateCredentials(slug,{loginName,loginCode,adminToken}={}){
+    validateBranchSlug(slug);
+    if(loginName!==undefined&&(typeof loginName!=='string'||!/^[a-z][a-z0-9._-]{2,39}$/.test(loginName)))throw Object.assign(Error('Нэвтрэх нэр буруу.'),{code:400});
+    if(loginCode!==undefined&&(typeof loginCode!=='string'||loginCode.length<16||loginCode.length>128))throw Object.assign(Error('Нэвтрэх код 16–128 тэмдэгт байна.'),{code:400});
+    if(adminToken!==undefined&&(typeof adminToken!=='string'||adminToken.length<24||adminToken.length>128))throw Object.assign(Error('Админ токен 24–128 тэмдэгт байна.'),{code:400});
+    if(loginName===undefined&&loginCode===undefined&&adminToken===undefined)throw Object.assign(Error('Өөрчлөх мэдээлэл алга.'),{code:400});
+    const op=writes.catch(()=>{}).then(async()=>{
+      const previous=registry.get(slug);
+      if(!previous)throw Object.assign(Error('Байгууллага олдсонгүй.'),{code:404});
+      const row={...previous};
+      if(loginName!==undefined)row.loginName=loginName;
+      if(loginCode!==undefined){
+        row.loginSalt=randomBytes(16).toString('hex');
+        row.loginHash=safeHash(loginCode,row.loginSalt);
+      }
+      if(adminToken!==undefined){
+        row.salt=randomBytes(16).toString('hex');
+        row.hash=safeHash(adminToken,row.salt);
+      }
+      const all=[...registry.values()].map(v=>v.slug===slug?row:v);
+      await atomicWrite(registryFile,{version:1,branches:all});
+      registry.set(slug,row);
+      return {slug,loginName:row.loginName,loginCodeChanged:loginCode!==undefined,adminTokenChanged:adminToken!==undefined};
+    });
+    writes=op.then(()=>{},()=>{});
+    return op;
+  }
   async function create({slug,name,loginName='admin'}){
     if(typeof loginName!=='string'||!/^[a-z][a-z0-9._-]{2,39}$/.test(loginName))throw Object.assign(Error('Нэвтрэх нэр 3–40 жижиг латин тэмдэгт байна.'),{code:400});
     if(!loaded)throw Error('Branch registry not loaded.');
@@ -193,5 +220,5 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     writes=work.then(()=>{},()=>{});
     return work;
   }
-  return {load,get,list,create,authorize,authorizeLogin,subscription,history,grantSubscription};
+  return {load,get,list,create,authorize,authorizeLogin,subscription,history,grantSubscription,rotateCredentials};
 }
