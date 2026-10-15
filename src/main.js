@@ -389,6 +389,8 @@ async function startVoice(fromWake=false){
       trackAnalytics('voiceFailed');
       toast('ElevenLabs холболт боломжгүй: '+e.message+'. Browser дуут танилт руу шилжиж байна.');
       await stopVoice(false);
+      // Keep the same bounded duration even in local STT fallback.
+      voiceCapTimer=setTimeout(()=>{void resetVisitorSession();},180000);
       await startLocalVoiceSession(fromWake);
       return;
     }
