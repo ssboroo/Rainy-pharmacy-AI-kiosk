@@ -1,0 +1,97 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import net from 'node:net';
+
+async function getPort(){
+  const server=net.createServer();
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const port=server.address().port;
+  await new Promise(resolve=>server.close(resolve));
+  return port;
+}
+test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and metrics are isolated',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'rainy-isolation-'));
+  const port=await getPort();
+  const token='master-random-token-with-more-than-24-characters';
+  const child=spawn(process.execPath,['server/index.mjs'],{
+    cwd:new URL('../',import.meta.url),
+    env:{...process.env,PORT:String(port),DATA_DIR:dir,ADMIN_TOKEN:token,ELEVENLABS_API_KEY:'test-provider-key',VOICE_AGENT_CLINICAL_APPROVED:'true',VOICE_AGENT_APPROVED_BRANCHES:''},
+    stdio:['ignore','pipe','pipe']
+  });
+  let logs='';
+  child.stdout.on('data',x=>logs+=x.toString());
+  child.stderr.on('data',x=>logs+=x.toString());
+  const base='http://127.0.0.1:'+port;
+  const rootAuth={Authorization:'Bearer '+token};
+  async function call(path,{method='GET',auth='',body}={}){
+    const headers={...(auth?{Authorization:'Bearer '+auth}:{}),...(body?{'Content-Type':'application/json'}:{})};
+    const result=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
+    const text=await result.text();
+    let data;try{data=JSON.parse(text);}catch{data=text;}
+    return {status:result.status,data};
+  }
+  try{
+    let ready=false;
+    for(let i=0;i<80;i++){
+      if(child.exitCode!==null)throw Error('Server exited unexpectedly: '+logs);
+      try{if((await call('/api/health')).status===200){ready=true;break;}}catch{}
+      await new Promise(resolve=>setTimeout(resolve,65));
+    }
+    assert.equal(ready,true,logs);
+    const noToken=await call('/api/admin/branches');
+    assert.equal(noToken.status,401);
+    const one=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'one-branch',name:'Эмийн сан 1'}});
+    const two=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'two-branch',name:'Эмийн сан 2'}});
+    assert.equal(one.status,201);assert.equal(two.status,201);
+    const key1=one.data.branch.adminToken,key2=two.data.branch.adminToken;
+    const list=await call('/api/admin/branches',{auth:token});
+    assert.equal(list.data.branches.length,2);
+    assert.doesNotMatch(JSON.stringify(list.data),new RegExp(key1));
+    assert.equal((await call('/api/admin/catalog?branch=two-branch',{auth:key1})).status,401);
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{auth:token})).status,401);
+    assert.equal((await call('/api/admin/branches?branch=one-branch',{auth:key1})).status,403);
+    assert.equal((await call('/api/bootstrap?branch=none-such')).status,404);
+    assert.equal((await call('/api/bootstrap?branch=..%2F..')).status,400);
+    const png='data:image/png;base64,'+Buffer.from('89504e470d0a1a0a0000000049454e44ae426082','hex').toString('base64');
+    const save1=await call('/api/admin/settings?branch=one-branch',{method:'PUT',auth:key1,body:{pharmacyName:'Үндсэн бус A',assistantName:'Ариа',agentId:'agent_one',logoData:png}});
+    assert.equal(save1.status,200);
+    assert.equal(save1.data.settings.logoData,png);
+    const save2=await call('/api/admin/settings?branch=two-branch',{method:'PUT',auth:key2,body:{pharmacyName:'Үндсэн бус B',assistantName:'Мира',agentId:'agent_two'}});
+    assert.equal(save2.status,200);
+    const b1=await call('/api/bootstrap?branch=one-branch');
+    const b2=await call('/api/bootstrap?branch=two-branch');
+    assert.equal(b1.data.pharmacyName,'Үндсэн бус A');
+    assert.equal(b2.data.pharmacyName,'Үндсэн бус B');
+    assert.equal(b2.data.logoData,'');
+    assert.equal(b1.data.branchSlug,'one-branch');
+    assert.equal(b1.data.voiceReady,false,'global clinical gate alone may not activate a new tenant');
+    assert.equal(b2.data.voiceReady,false,'second branch also requires explicit clinic approval');
+    assert.equal((await call('/api/agent/signed-url?branch=one-branch')).status,503,'unapproved branch must never mint voice sessions');
+    assert.equal(b2.data.branchSlug,'two-branch');
+    const item={id:'only-a',name:'Онцгой нэмэлт A',aliases:['speciala'],category:'Тест',description:'Тайлбар',verified:false};
+    assert.equal((await call('/api/admin/catalog?branch=one-branch',{method:'PUT',auth:key1,body:[item]})).status,200);
+    assert.equal((await call('/api/catalog/names?branch=one-branch')).data.items.length,1);
+    assert.equal((await call('/api/catalog/names?branch=two-branch')).data.items.some(v=>v.id==='only-a'),false);
+    assert.equal((await call('/api/catalog/medicine?branch=one-branch&id=only-a')).data.item.name,item.name);
+    assert.equal((await call('/api/catalog/medicine?branch=two-branch&id=only-a')).status,404);
+    assert.equal((await call('/api/ask?branch=one-branch',{method:'POST',body:{question:'Онцгой нэмэлт A мэдээлэл'}})).status,200);
+    await call('/api/analytics/event?branch=one-branch',{method:'POST',body:{event:'catalogOpened'}});
+    const reportA=await call('/api/admin/analytics?branch=one-branch&days=7',{auth:key1});
+    const reportB=await call('/api/admin/analytics?branch=two-branch&days=7',{auth:key2});
+    assert.equal(reportA.data.totals.questionsAsked,1);
+    assert.equal(reportB.data.totals.questionsAsked,0);
+    assert.equal(reportA.data.totals.catalogOpened,1);
+    assert.equal(reportB.data.totals.catalogOpened,0);
+    assert.equal((await call('/api/admin/analytics?branch=two-branch',{auth:key1})).status,401);
+    const baseConfig=await call('/api/bootstrap');
+    assert.notEqual(baseConfig.data.pharmacyName,'Үндсэн бус A');
+  }finally{
+    child.kill('SIGTERM');
+    await new Promise(resolve=>child.exitCode!==null?resolve():child.once('exit',resolve));
+    await rm(dir,{recursive:true,force:true});
+  }
+});

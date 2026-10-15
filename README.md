@@ -144,3 +144,19 @@ The potential staff time saved card is an interactive assumption, default 2 minu
 Customer deployment note: The current app is one independent kiosk/one pharmacy instance. To sell to multiple organizations in production, give each pharmacy its own isolated deployment and storage/ADMIN_TOKEN or build a proper multi-tenant service with per-tenant authentication, access control and data partitions. Do NOT share a single admin token or shared analytics file among pharmacy customers.
 
 Operational privacy: Inform visitors that wake-word detection/browser voice services may send microphone input to external providers; no conversation content is included in this analytics dashboard. Clinical triage decisions must be handled by a licensed pharmacist.
+
+
+## Салбар бүрийн тусгаарлалт + брэнд лого + AI-тай хамт харагдах эмийн карт (2026-10-15)
+
+**Үндсэн буюу хуучин салбар:** / ба /admin.html — урьдын /app/storage/settings.json, catalog.json, analytics.json өгөгдөлд огт өөрчлөлт хийхгүй.
+
+**Шинэ салбарууд:** Үндсэн админ ADMIN_TOKEN-оор /admin.html-д нэвтрээд **Салбаруудын удирдлага** хэсэгт нэр, URL код оруулж үүсгэнэ. Нууц хүчтэй админ токеныг *зөвхөн нэг удаа* харуулна. Үүнийг тусгай салбарын эрхтэй ажилтанд аюулгүй сувгаар өгнө. Салбарын нэвтрэх холбоос /admin.html?branch=sukhbaatar-01, үйлчлүүлэгчийн киоск /?branch=sukhbaatar-01 хэлбэртэй. Нууц токеныг URL-д бүү оруул. Салбарын token өөр салбар, төв салбарын админ, бүх салбарын жагсаалтад нэвтрэх эрхгүй.
+
+- Салбар бүрийн settings, catalog, analytics нь DATA_DIR/branches/<slug>/ дотор тусдаа; /app/storage дээрх Railway persistent volume үргэлжилнэ. branches-registry.json нь зөвхөн *salted SHA-256 HMAC hash* хэлбэрийн админуудын токеныг хадгална. Токены анхны утгыг дотроос дахин унших боломжгүй.
+- Салбарын админ фармацийн нэр, AI нэр, мэндчилгээ, дүр, ElevenLabs Agent ID, каталог, 7/30/90 хоногийн статистик, логог тусдаа засна. Лого PNG/JPEG/WebP, 210 KB хүртэл; зураг аюулгүй MIME болон signature шалгаад JSON тохиргоонд хадгалагдах бөгөөд киоскын робот толгойн дэргэд ба header-д гарна.
+- Эмийн талаар ярьж/бичиж байхад каталогийн *танигдсан нэртэй* бүтээгдэхүүний баталгаажсан эсвэл жишээ бүртгэлийн ерөнхий тайлбар/хэлбэр/анхааруулгыг AI дүрийн дэргэд карт болгон харуулна. AI-ийн чөлөөт текстээс тун, жор эсвэл шинэ эмийн бүтээгдэхүүн зохион гаргахгүй. Каталогийн нэрс local browser-д ачаалагдаж, танилт зөвхөн төхөөрөмжид ажиллана; сервер рүү зөвхөн сонгогдсон бүтээгдэхүүний ID-гаар тайлбар авна.
+- Хөдөлгөөнт картын мэдээлэл нь баталгаажсан эх сурвалж биш бол тодорхой **туршилтын** шошготой байна. 30 жишээ эм нь бодит үнэ/үлдэгдэл биш.
+
+**Дуут аюулгүй байдлын давхар зөвшөөрөл:** Үндсэн салбарын VOICE_AGENT_CLINICAL_APPROVED тохиргоо хэвээр. Шинэ салбарын дуут agent *өөрөө автоматаар идэвхжихгүй*: глобал VOICE_AGENT_CLINICAL_APPROVED=true бөгөөд тус салбарын slug VOICE_AGENT_APPROVED_BRANCHES-д тодорхой жагсаагдсан үед л ярих эрх нээгдэнэ (жишээ: VOICE_AGENT_APPROVED_BRANCHES=sukhbaatar-01,central-east). Үүнийг тус тусын эм зүйч/клиник хяналтад батлуулсны дараа Railway Variables-д тохируулна. Provider API key одоогоор нэг платформын environment-д төвлөрсөн; шинэ салбаруудын хувьд Agent ID тус тусдаа байх шаардлагатай.
+
+**Хязгаарлалт:** Энэ бол нэг Node.js/Railway процесст суурилсан *логик тусгаарлалттай* эхний олон салбарын MVP; физик тусдаа өгөгдлийн сан, tenant тус бүрийн encryption key, аж ахуйн нэгжийн IAM, billing, POS интеграц биш. Том хэмжээний борлуулалтад PostgreSQL tenant_id + row-level security, аудит, backup-restore, токен сэргээх/солих, шаталсан байгууллага/салбарын эрх нэвтрүүлэх шаардлагатай. Дуунд хариулах ElevenLabs-ийн медицин систем prompt нь provider дээр тусдаа хянагдах ёстой, зөвхөн энэ аппийн аюулгүй /api/ask route нь дуут LLM-ийн output-ийг хязгаарлахгүй.
