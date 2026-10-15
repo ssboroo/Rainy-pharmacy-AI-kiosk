@@ -260,6 +260,12 @@ function makeWakeListener(){
   wakeListener=new WakeGreetingListener({
     SpeechRecognition,
     onWake:async()=>{
+      // PAYG never starts billable sessions on background wake words.
+      // A deliberate microphone-button tap is required.
+      if(config?.subscription?.plan==='payg'){
+        wakeListener?.resume(2600);
+        return;
+      }
       if(voiceStarting||conversation||recognition)return;
       const now=Date.now();
       if(now-lastWakeAt<3500){wakeListener.resume(2500);return;}
@@ -288,7 +294,7 @@ async function enableMicFromStaff(){
     toast('HTTPS эсвэл localhost дээр л микрофон зөвшөөрөх боломжтой.');return;
   }
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     stream.getTracks().forEach(track=>track.stop());
     localStorage.setItem(WAKE_STORAGE_KEY,'1');
     wakeListener.enable();
