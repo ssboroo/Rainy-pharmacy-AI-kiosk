@@ -537,6 +537,15 @@ async function init(){
   wire();
   try{
     config=await api('/bootstrap');
+    if(config.subscription&&!config.subscription.active){
+      const banner=$('demoBanner');
+      banner.hidden=false;
+      banner.textContent='⏳ Энэ салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Эмийн сангийн админаас эрх сунгуулаарай.';
+      $('micBtn').disabled=true;
+      $('questionInput').disabled=true;
+      document.querySelector('#askForm button').disabled=true;
+      for(const id of ['medicineAction','cameraAction','voiceAction','kioskCatalogBtn','kioskCameraBtn'])if($(id))$(id).disabled=true;
+    }
     document.documentElement.style.setProperty('--accent',config.accent);
     $('locationLabel').textContent=config.locationName;
     $('pharmacyNameLabel').textContent=config.pharmacyName;
@@ -552,7 +561,7 @@ async function init(){
     document.querySelector('.brand-mark').href=branchSlug?'/?branch='+encodeURIComponent(branchSlug):'/';
     document.querySelector('.admin-link').href=branchSlug?'/admin.html?branch='+encodeURIComponent(branchSlug):'/admin.html';
     $('greetingBubble').textContent=config.greeting;
-    $('demoBanner').hidden=!config.demoMode;
+    if(!config.subscription||config.subscription.active)$('demoBanner').hidden=!config.demoMode;
     $('voiceHint').textContent=config.voiceReady?'ElevenLabs AI Agent идэвхтэй · Микрофоноо асаана уу':config.voiceConfigured?'Agent ID / API key тохируулсан. Эмнэлзүйн зөвшөөрөл дутуу — админаас шалгана уу.':'Browser дуут танилт / бичгээр асуулт · ElevenLabs Agent холболт дутуу';
     renderAvatars();
     await loadPremium2D5();

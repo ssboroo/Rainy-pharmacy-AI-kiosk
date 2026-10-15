@@ -16,6 +16,18 @@
       <div id="newBranchLinks"></div>
     </div>
     <div id="branchList" class="branch-list"></div>
+    <form id="subscriptionForm" class="subscription-panel">
+      <h3>Хугацаатай эрх удирдах</h3>
+      <p>Төв админ гараар нээнэ, сунгана эсвэл зогсооно. Онлайн төлбөр шаардахгүй.</p>
+      <div class="grid">
+        <label>Салбарын код<input id="subscriptionSlug" required placeholder="branch-code"/></label>
+        <label>Дуусах өдөр<input id="subscriptionDate" type="date"/></label>
+        <label>Багц<select id="subscriptionPlan"><option value="starter">Starter</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></label>
+        <label>Төлөв<select id="subscriptionStatus"><option value="active">Идэвхжүүлэх / сунгах</option><option value="paused">Түр зогсоох</option></select></label>
+      </div>
+      <label>Тэмдэглэл<input id="subscriptionNote" maxlength="160" placeholder="Гэрээ, сунгалтын тайлбар"/></label>
+      <button id="subscriptionSave" type="submit">Эрх хадгалах</button>
+    </form>
   </section>
   <div id="currentBranchBanner" class="current-branch-banner"></div>
 <section class="insights-panel" aria-labelledby="insightsTitle">
@@ -48,4 +60,4 @@
 </section>
 <h2>✦ Эмийн сангийн тохиргоо</h2><div class="grid"><label>Эмийн сангийн нэр<input id="pharmacyName"></label><label>AI нэр<input id="assistantName"></label><label>Дүр<select id="defaultAvatar"></select></label><label>Үндсэн өнгө<input id="accent" type="color"></label><label>Киоск байрлал<input id="locationName"></label><label>ElevenLabs Agent ID<input id="agentId" placeholder="agent_..."></label></div>
   <div class="brand-settings"><div><h3>Эмийн сангийн лого</h3><p>PNG, JPG эсвэл WebP зураг оруулна. Киоскын дүрийн хажууд болон цэсэнд харагдана.</p></div><img id="logoPreview" alt="Салбарын логоны харагдац" hidden/><div class="brand-file-controls"><input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp"/><button id="logoRemove" type="button" class="insights-outline">Лого арилгах</button></div></div>
-  <label>Мэндчилгээ<textarea id="greeting" rows="3"></textarea></label><button id="saveSettings">Тохиргоо хадгалах</button><section class="voice-test-panel"><h3>🎙 ElevenLabs Agent холболтын шалгалт</h3><p>Энэ тест нууц API түлхүүр эсвэл signed URL-ийг дэлгэцэд харуулахгүй. Клиник зөвшөөрөлгүйгээр үйлчлүүлэгчтэй яриа эхлүүлэхгүй.</p><div id="voiceDiagnostics" role="status">Agent холболтын төлөв...</div><button type="button" id="testVoiceAgent">Agent ID ба API key-г шалгах</button></section><hr/><h2>▤ Эмийн каталог</h2><p><strong>Анхаар:</strong> verified=true бол эх сурвалж HTTPS холбоос, баталгаажуулсан огноо заавал бөглөнө. Энэ нь эм зүйчийн хяналтыг орлохгүй. POS холболтгүй үед үлдэгдэл автоматаар шинэчлэгдэхгүй.</p><textarea id="catalog" class="json" spellcheck="false" rows="14"></textarea><button id="saveCatalog">Каталог хадгалах</button><hr/><h2>⚡ Гадаад интеграц</h2><p>ELEVENLABS_API_KEY, OPENAI_API_KEY, PHARMACIST_WEBHOOK_URL нууц хувьсагчуудыг Railway Variables / server environment-д тохируулна. API key-г энэ хуудсанд хадгалахгүй.</p></section><div id="status" role="status"></div><footer>© RAINY Pharmacy AI · Админы тохиргоо зөвхөн эрхтэй ажилтанд</footer></div><script type="module" src="/admin.js"></script></body></html>
+  <label>Мэндчилгээ<textarea id="greeting" rows="3"></textarea></label><button id="saveSettings">Тохиргоо хадгалах</button><section class="voice-test-panel"><h3>🎙 ElevenLabs Agent холболтын шалгалт</h3><p>Энэ тест нууц API түлхүүр эсвэл signed URL-ийг дэлгэцэд харуулахгүй. Клиник зөвшөөрөлгүйгээр үйлчлүүлэгчтэй яриа эхлүүлэхгүй.</p><div id="voiceDiagnostics" role="status">Agent холболтын төлөв...</div><button type="button" id="testVoiceAgent">Agent ID ба API key-г шалгах</button></section><hr/><h2>▤ Эмийн каталог</h2><p><strong>Анхаар:</strong> verified=true бол эх сурвалж HTTPS холбоос, баталгаажуулсан огноо заавал бөглөнө. Энэ нь эм зүйчийн хяналтыг орлохгүй. POS холболтгүй үед үлдэгдэл автоматаар шинэчлэгдэхгүй.</p><div class="catalog-import-controls"><label>CSV каталог импортлох (эм зүйч баталгаажуулна)<input id="catalogCsvFile" type="file" accept=".csv,text/csv"/></label><button id="catalogCsvImport" type="button">CSV-ээс унших</button><p>CSV файл автоматаар verified=true болгохгүй. Импортын өмнө жагсаалтыг нягтлаарай.</p></div><textarea id="catalog" class="json" spellcheck="false" rows="14"></textarea><button id="saveCatalog">Каталог хадгалах</button><hr/><h2>⚡ Гадаад интеграц</h2><p>ELEVENLABS_API_KEY, OPENAI_API_KEY, PHARMACIST_WEBHOOK_URL нууц хувьсагчуудыг Railway Variables / server environment-д тохируулна. API key-г энэ хуудсанд хадгалахгүй.</p></section><div id="status" role="status"></div><footer>© RAINY Pharmacy AI · Админы тохиргоо зөвхөн эрхтэй ажилтанд</footer></div><script type="module" src="/admin.js"></script></body></html>
