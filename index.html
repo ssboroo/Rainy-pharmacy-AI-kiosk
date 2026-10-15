@@ -14,7 +14,7 @@
   <aside class="sidebar">
     <a href="/" class="brand-mark" aria-label="RAINY Нүүр"><img id="sidebarBrandLogo" class="sidebar-brand-logo" alt="Эмийн сангийн лого" hidden/><span class="brand-glyph">✦</span><div><strong>rainy<span>.</span></strong><small>PHARMACY AI</small></div></a>
     <div class="sidebar-nav">
-      <span class="nav-label">Цэс</span>
+      <span class="nav-label">ҮЙЛЧИЛГЭЭНИЙ ЦЭС</span>
       <button id="homeNav" class="nav-item active"><span>◈</span> Нүүр хуудас</button>
       <button id="catalogNav" class="nav-item"><span>▤</span> Эмийн мэдээлэл</button>
       <button id="cameraNav" class="nav-item"><span>▣</span> Камераар унших</button>
@@ -23,7 +23,7 @@
     <div class="sidebar-spacer"></div>
     <div class="side-assistance"><span class="small-spark">✳</span><strong>Тусламж хэрэгтэй юу?</strong><p>Манай эм зүйч танд туслахад бэлэн.</p><button id="handoffSide" class="side-help">Эм зүйч дуудах ↗</button></div>
     <a href="/admin.html" class="admin-link">⚙ Админ тохиргоо</a>
-    <div class="sidebar-footer"><span class="online-dot"></span> RAINY KIOSK · V0.1</div>
+    <div class="sidebar-footer"><span class="online-dot"></span> RAINY PHARMACY <small>Эрүүл мэндийн мэдээллийн туслах</small></div>
   </aside>
   <main class="main-area">
     <header class="topbar">
@@ -31,11 +31,11 @@
       <div class="topbar-right"><span class="branch-name" id="locationLabel">Мэдээллийн цэг</span><span class="top-clock" id="clock">--:--</span><button id="fullscreenBtn" class="icon-btn" aria-label="Дэлгэц дүүргэх">⛶</button></div>
     </header>
     <div class="main-inner">
-      <div class="section-title"><div><p class="micro-label">ТАНЫ УХААЛАГ ТУСЛАХ</p><h1>Сайн байна уу <span class="heading-spark">✳</span></h1><p id="heroDescription" class="section-subtitle">Эмийн мэдээллийг ойлгомжтой, эелдгээр.</p></div><span class="pilot-tag">✦ AI POWERED EXPERIENCE</span></div>
+      <div class="section-title"><div><p class="micro-label">RAINY DIGITAL PHARMACY · ҮЙЛЧЛҮҮЛЭГЧИЙН ОРЧИН</p><h1>Сайн байна уу <span class="heading-spark">✳</span></h1><p id="heroDescription" class="section-subtitle">Эмийн мэдээллийг ойлгомжтой, эелдгээр.</p></div><span class="pilot-tag"><span class="pilot-pulse"></span> МОНГОЛ ХЭЛНИЙ AI ТУСЛАХ</span></div>
       <div id="demoBanner" class="demo-banner" hidden>ℹ Туршилтын каталог: харуулсан бүтээгдэхүүний мэдээлэл нь эмийн сангийн баталгаажсан бодит өгөгдөл биш.</div>
       <div class="content-grid">
         <section class="stage-card">
-          <div class="stage-decor decor-1"></div><div class="stage-decor decor-2"></div>
+          <div class="stage-decor decor-1"></div><div class="stage-decor decor-2"></div><div class="stage-top-kicker">✦ ТАНЫ ДИЖИТАЛ ЗӨВЛӨХ</div>
           <div class="stage-top"><span class="live-status"><span class="pulse-dot"></span><span id="statusLabel">Танд туслахад бэлэн</span></span><div class="stage-actions"><button id="setupMicrophoneBtn" class="setup-mic" type="button">🎙 Микрофон зөвшөөрөх</button><button id="kioskBtn" class="setup-screen" type="button">⛶ Томруулах</button><span class="language-chip">🌐 МОНГОЛ</span></div></div>
           <div class="stage-persona">
             <img id="branchLogo" class="branch-logo" alt="Эмийн сангийн лого" hidden/>
@@ -59,17 +59,17 @@
           <div id="kioskDock" class="kiosk-dock"><button id="kioskCatalogBtn" type="button">✚ <span>Эмийн мэдээлэл</span></button><button id="kioskCameraBtn" type="button">▣ <span>Эм уншуулах</span></button><button id="kioskStaffBtn" type="button">♡ <span>Эм зүйч дуудах</span></button><button id="kioskExitBtn" type="button" aria-label="Жижиг дэлгэц рүү буцах">↙</button></div>
         </section>
         <div class="right-column">
-          <section class="quick-title"><div><p class="micro-label">ҮЙЛЧИЛГЭЭ</p><h2>Танд юугаар туслах вэ?</h2></div><span class="quick-flower">✳</span></section>
+          <section class="quick-title"><div><p class="micro-label">НЭГ ДАРАЛТААР</p><h2>Танд юугаар туслах вэ?</h2></div><span class="quick-flower">✳</span></section>
           <div class="action-grid">
             <button id="medicineAction" class="action-card"><span class="action-icon icon-medicine">✚</span><span><strong>Эмийн мэдээлэл</strong><small>Нэрээр хайх, үнэ &amp; үлдэгдэл</small></span><span class="card-arrow">↗</span></button>
             <button id="cameraAction" class="action-card"><span class="action-icon icon-camera">▣</span><span><strong>Камераар таних</strong><small>Эмийн хайрцаг уншуулах</small></span><span class="card-arrow">↗</span></button>
             <button id="voiceAction" class="action-card"><span class="action-icon icon-sound">◉</span><span><strong>AI-тай ярилцах</strong><small>Монгол хэлээр асуулт асуух</small></span><span class="card-arrow">↗</span></button>
             <button id="staffAction" class="action-card"><span class="action-icon icon-staff">♡</span><span><strong>Эм зүйч дуудах</strong><small>Мэргэжлийн тусламж авах</small></span><span class="card-arrow">↗</span></button>
           </div>
-          <section class="chat-panel"><div class="chat-header"><div><span class="chat-symbol">✦</span><strong>AI туслахтай чатлах</strong></div><span class="chat-tag">Аюулгүй горим</span></div><div id="conversation" class="chat-messages" aria-live="polite"><div class="message assistant"><span class="message-mark">✦</span><div class="bubble" id="greetingBubble">Сайн байна уу! Эмийн нэр, үнэ, байршлын талаар асуугаарай.</div></div></div><form id="askForm" class="chat-input-row"><input id="questionInput" type="text" placeholder="Асуултаа энд бичнэ үү..." maxlength="500" autocomplete="off" aria-label="Асуулт"/><button type="submit" aria-label="Илгээх">➤</button></form></section>
+          <section class="chat-panel"><div class="chat-header"><div><span class="chat-symbol">✦</span><strong>AI туслахтай чатлах</strong></div><span class="chat-tag"><span class="chat-tag-dot"></span> Аюулгүй мэдээллийн горим</span></div><div id="conversation" class="chat-messages" aria-live="polite"><div class="message assistant"><span class="message-mark">✦</span><div class="bubble" id="greetingBubble">Сайн байна уу! Эмийн нэр, үнэ, байршлын талаар асуугаарай.</div></div></div><form id="askForm" class="chat-input-row"><input id="questionInput" type="text" placeholder="Эмийн нэр эсвэл асуултаа бичээрэй..." maxlength="500" autocomplete="off" aria-label="Асуулт"/><button type="submit" aria-label="Илгээх">➤</button></form></section>
         </div>
       </div>
-      <div class="avatar-section"><div class="avatar-heading"><div><p class="micro-label">PERSONALIZE YOUR ASSISTANT</p><h2>Өөрийн AI туслахаа сонгоорой</h2></div><p>Дуртай дүрээ сонгоод ярилцаарай <span>✦</span></p></div><div id="avatarList" class="avatar-list"></div></div>
+      <div class="avatar-section"><div class="avatar-heading"><div><p class="micro-label">ТАНЫ ТУСЛАХ · AI ДҮРҮҮД</p><h2>Өөрийн AI туслахаа сонгоорой</h2></div><p>Дуртай дүрээ сонгоод ярилцаарай <span>✦</span></p></div><div id="avatarList" class="avatar-list"></div></div>
       <footer class="legal-foot">RAINY Pharmacy AI нь эмч, эм зүйчийг орлохгүй. Тун, эмчилгээ, жор, эмийн харилцан үйлчлэлийг мэргэжлийн эм зүйчээс лавлана уу. Камер, микрофон зөвхөн таны зөвшөөрлөөр ажиллана.</footer>
     </div>
   </main>
