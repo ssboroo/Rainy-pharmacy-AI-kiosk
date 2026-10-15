@@ -196,7 +196,7 @@ function updateMicrophoneUI(){
   const enabled=!!wakeListener?.enabled;
   $('setupMicrophoneBtn').textContent=enabled?'● Микрофон идэвхтэй':'🎙 Микрофон зөвшөөрөх';
   $('setupMicrophoneBtn').classList.toggle('enabled',enabled);
-  $('micPrivacy').textContent=enabled?'Мэндчилгээ сонсож байна · Дуу таних үйлчилгээ интернэт ашиглаж болно':'Эхлээд ажилтан микрофоны зөвшөөрлийг идэвхжүүлнэ';
+  $('micPrivacy').textContent=enabled?'Мэндчилгээ сонсож байна · Дуу таних үйлчилгээ интернэт ашиглаж болно':'Яриа эхлүүлэхдээ микрофоны зөвшөөрөл олгоно уу';
 }
 function onWakeState(state){
   if(state==='listening'||state==='retrying'){if(!conversation&&!recognition&&!voiceStarting)setStatus('wake');}
