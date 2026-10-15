@@ -473,7 +473,8 @@ if(db){
  try{await db.init();operationsState.postgresConnected=true;}
  catch(err){operationsState.postgresError=err.message;console.warn('PostgreSQL init pending:',err.message);}
 }
-// A local snapshot at boot and every 24h. This does not replace off-site backup.
-try{await automatedSnapshot();}catch(err){console.warn('Local backup unavailable:',err.message);}
-setInterval(()=>automatedSnapshot().catch(err=>console.warn('Local backup failed:',err.message)),86400000).unref();
+// Avoid blocking HTTP startup on external bucket network calls. Reports show
+// whether the off-site upload and non-destructive decrypt verification succeeded.
+void automatedSnapshot().catch(err=>console.warn('Operational backup unavailable:',err.message));
+setInterval(()=>automatedSnapshot().catch(err=>console.warn('Operational backup failed:',err.message)),86400000).unref();
 http.createServer(handle).listen(port,'0.0.0.0',()=>console.log('RAINY Pharmacy on port '+port));
