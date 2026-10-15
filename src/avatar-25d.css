@@ -274,7 +274,7 @@
  animation:none;
  opacity:0;
  transform:scaleY(1);
- transition:opacity 75ms ease,transform 75ms ease;
+ /* Crisp 170ms blink: avoid transitions racing the timer/frame budget. */
 }
 #avatar25[data-ambient-blink="1"] .avatar25-eyelid{
  opacity:1;
