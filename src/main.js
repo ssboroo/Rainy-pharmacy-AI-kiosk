@@ -148,14 +148,16 @@ function renderAvatars(){
 }
 async function ask(question){
   const q=question.trim();if(q.length<2)return;
+  const requestEpoch=visitorEpoch;
   markKioskInteraction();
   $('questionInput').value='';addMessage('user',q);
   try{
     const answer=await api('/ask',{method:'POST',body:JSON.stringify({question:q})});
+    if(requestEpoch!==visitorEpoch)return;
     addMessage('assistant',answer.reply);
     if(recognition){const active=recognition;recognition=null;active.onend=null;active.onerror=null;try{active.abort();}catch{};const audible=await speakBrowser(answer.reply);if(!audible)toast('Энэ төхөөрөмжийн Монгол хэлний TTS дэмжлэг хязгаарлагдмал. ElevenLabs Voice Agent-г админ дээр шалгана уу.');if(localSessionWanted&&!conversation)await startLocalVoiceSession(false);}
     if(answer.kind==='emergency')toast('ЯАРАЛТАЙ: Эм зүйчийг дуудаж, шаардлагатай бол 103 руу залгаарай.');
-  }catch(e){toast(e.message);}
+  }catch(e){if(requestEpoch===visitorEpoch)toast(e.message);}
 }
 function setWave(level) {
   const next=Math.max(0,Math.min(1,Number(level)||0));
