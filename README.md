@@ -233,3 +233,8 @@ This is a cost/safety defense-in-depth configuration, **not** speaker diarizatio
 ## Continuous operating mode (2026-10-15 clarification)
 
 RAINY Pharmacy Kiosk accepts customers at any hour. The mistaken 08:00-22:00 access limitation has been removed. Idle waiting does not open ElevenLabs paid conversations. Provider connections start only after a manual visitor action or a staff-enabled and recognized greeting. The visitor idle reset and 180-second maximum conversation guard close paid sessions; the server also caps repeated signed URL issuance. The microphone wake listener may use browser speech recognition while awaiting a greeting, so it is NOT guaranteed to be free of third-party processing. Use near-field directional microphones and explicitly configure wake/listening and budgets with your provider. No generic microphone can completely ignore background speakers.
+
+
+## Subscription pricing display (2026-10-15)
+
+The draft commercial rate card starts at **Starter ₮399,000/month**, then **Pro ₮699,000/month** and **Enterprise ₮1,299,000/month**. These are suggested, editable business rates, **not** automatically collected payments, invoices, receipts or binding quotes. Central admin can choose a tier and manually grant access until a specified expiration date. Future billing must reconcile verified payment, per-branch rate and duration before activation. No automatic payment claim is made.
