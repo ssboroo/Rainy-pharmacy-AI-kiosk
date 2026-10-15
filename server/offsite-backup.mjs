@@ -3,7 +3,7 @@ import {encryptBackup,decryptBackup} from './encrypted-backup.mjs';
 export function createOffsiteBackup(config){
  const {endpoint,region,bucket,accessKeyId,secretAccessKey,encryptionKey}=config;
  if(!endpoint||!bucket||!accessKeyId||!secretAccessKey||!encryptionKey)return null;
- const client=new S3Client({endpoint,region:region||'auto',forcePathStyle:true,credentials:{accessKeyId,secretAccessKey}});
+ const client=new S3Client({endpoint,region:region||'auto',forcePathStyle:config.urlStyle==='path',credentials:{accessKeyId,secretAccessKey}});
  async function save(snapshot){
   const encrypted=encryptBackup(snapshot,encryptionKey);
   const key='rainy/'+new Date().toISOString().slice(0,10)+'/'+Date.now()+'-'+encrypted.sha256.slice(0,16)+'.json.gcm';
