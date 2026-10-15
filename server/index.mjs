@@ -383,6 +383,33 @@ async function handle(req,res){
       }
       // Platform owner can configure a particular organization without borrowing its password.
       // Explicit branch slug, small allowlist and server-side owner authorization.
+      if(route==='/api/admin/branches/credentials'&&req.method==='PUT'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        const input=await bodyJson(req,1600);
+        if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.slug!=='string'||
+          Object.keys(input).some(key=>!['slug','loginName','loginCode','adminToken'].includes(key)))
+          return respond(res,400,{error:'Нэвтрэх мэдээллийн хүсэлт буруу.'});
+        const {slug,...updates}=input;
+        const result=await registry.rotateCredentials(slug,updates);
+        await audit.record('settings.updated',slug);
+        return respond(res,200,{changed:result});
+      }
+      if(route==='/api/admin/branches/catalog'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        if(req.method==='GET'){
+          const slug=url.searchParams.get('slug');
+          const instance=registry.get(slug);
+          return respond(res,200,{slug,items:instance.catalog});
+        }
+        if(req.method==='PUT'){
+          const input=await bodyJson(req,1000000);
+          if(!input||typeof input.slug!=='string'||!Array.isArray(input.items))return respond(res,400,{error:'Байгууллага болон каталог шаардлагатай.'});
+          const instance=registry.get(input.slug);
+          const items=await instance.updateCatalog(input.items);
+          await audit.record('catalog.updated',input.slug);
+          return respond(res,200,{slug:input.slug,count:items.length});
+        }
+      }
       if(route==='/api/admin/branches/config'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
         if(req.method==='GET'){
