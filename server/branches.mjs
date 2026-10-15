@@ -124,7 +124,13 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     const expected=Buffer.from(row.hash,'hex');
     return timingSafeEqual(candidate,expected);
   }
-  function list(){return [...registry.values()].map(({slug,name,createdAt,subscription})=>({slug,name,createdAt,subscription:subscriptionState(subscription)}));}
+  function authorizeLogin(slug,loginName,code){
+    if(typeof loginName!=='string'||typeof code!=='string'||code.length>200)return false;
+    const row=registry.get(slug);
+    if(!row||!row.loginName||!row.loginSalt||!row.loginHash||row.loginName!==loginName)return false;
+    return timingSafeEqual(Buffer.from(safeHash(code,row.loginSalt),'hex'),Buffer.from(row.loginHash,'hex'));
+  }
+  function list(){return [...registry.values()].map(({slug,name,createdAt,subscription,loginName})=>({slug,name,createdAt,loginName:loginName||null,subscription:subscriptionState(subscription)}));}
   function subscription(slug,now=new Date()){
     const row=registry.get(validateBranchSlug(slug));
     if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
@@ -160,7 +166,8 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     writes=work.then(()=>{},()=>{});
     return work;
   }
-  async function create({slug,name}){
+  async function create({slug,name,loginName='admin'}){
+    if(typeof loginName!=='string'||!/^[a-z][a-z0-9._-]{2,39}$/.test(loginName))throw Object.assign(Error('Нэвтрэх нэр 3–40 жижиг латин тэмдэгт байна.'),{code:400});
     if(!loaded)throw Error('Branch registry not loaded.');
     validateBranchSlug(slug);
     if(typeof name!=='string'||name.trim().length<2||name.length>80){
@@ -173,16 +180,18 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
       if(registry.size>=200)throw Object.assign(Error('Салбарын дээд хэмжээ хүрсэн.'),{code:409});
       const token=randomBytes(32).toString('base64url');
       const salt=randomBytes(16).toString('hex');
-      const row={slug,name:name.trim(),createdAt:new Date().toISOString(),salt,hash:safeHash(token,salt)};
+      const loginCode=randomBytes(24).toString('base64url');
+      const loginSalt=randomBytes(16).toString('hex');
+      const row={slug,name:name.trim(),createdAt:new Date().toISOString(),salt,hash:safeHash(token,salt),loginName,loginSalt,loginHash:safeHash(loginCode,loginSalt)};
       const next=[...registry.values(),row];
       await mkdir(root,{recursive:true});
       await atomicWrite(registryFile,{version:1,branches:next});
       registry.set(slug,row);
       instances.set(slug,await loadInstance(row));
-      return {slug,name:row.name,createdAt:row.createdAt,adminToken:token,subscription:subscriptionState(row.subscription)};
+      return {slug,name:row.name,createdAt:row.createdAt,adminToken:token,loginName,loginCode,subscription:subscriptionState(row.subscription)};
     });
     writes=work.then(()=>{},()=>{});
     return work;
   }
-  return {load,get,list,create,authorize,subscription,history,grantSubscription};
+  return {load,get,list,create,authorize,authorizeLogin,subscription,history,grantSubscription};
 }
