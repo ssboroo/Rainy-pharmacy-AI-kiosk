@@ -48,6 +48,13 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     const two=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'two-branch',name:'Эмийн сан 2'}});
     assert.equal(one.status,201);assert.equal(two.status,201);
     const key1=one.data.branch.adminToken,key2=two.data.branch.adminToken;
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.subscription.active,false);
+    assert.equal((await call('/api/catalog?branch=one-branch')).status,403);
+    assert.equal((await call('/api/admin/branches/subscription?branch=one-branch',{auth:key1})).status,403);
+    assert.equal((await call('/api/admin/branches/subscription',{method:'PUT',auth:key1,body:{slug:'one-branch',expiresAt:'2026-12-31'}})).status,401);
+    assert.equal((await call('/api/admin/branches/subscription',{method:'PUT',auth:token,body:{slug:'one-branch',expiresAt:'2099-12-31',plan:'pro',note:'Contract granted manually'}})).status,200);
+    assert.equal((await call('/api/admin/branches/subscription',{method:'PUT',auth:token,body:{slug:'two-branch',expiresAt:'2099-12-31',plan:'starter'}})).status,200);
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.subscription.active,true);
     const list=await call('/api/admin/branches',{auth:token});
     assert.equal(list.data.branches.length,2);
     assert.doesNotMatch(JSON.stringify(list.data),new RegExp(key1));
@@ -89,6 +96,14 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal((await call('/api/admin/analytics?branch=two-branch',{auth:key1})).status,401);
     const baseConfig=await call('/api/bootstrap');
     assert.notEqual(baseConfig.data.pharmacyName,'Үндсэн бус A');
+    assert.equal((await call('/api/admin/branches/subscription',{method:'PUT',auth:token,body:{slug:'one-branch',status:'paused',note:'paused by owner'}})).status,200);
+    assert.equal((await call('/api/ask?branch=one-branch',{method:'POST',body:{question:'Ямар эм байна вэ?'}})).status,403);
+    assert.equal((await call('/api/analytics/event?branch=one-branch',{method:'POST',body:{event:'catalogOpened'}})).status,403);
+    assert.equal((await call('/api/admin/catalog?branch=one-branch',{auth:key1})).status,200);
+    const history=await call('/api/admin/subscription?branch=one-branch',{auth:key1});
+    assert.equal(history.data.history.length,2);
+    assert.equal(history.data.subscription.status,'paused');
+    assert.equal((await call('/api/admin/subscription?branch=one-branch',{auth:key2})).status,401);
   }finally{
     child.kill('SIGTERM');
     await new Promise(resolve=>child.exitCode!==null?resolve():child.once('exit',resolve));
