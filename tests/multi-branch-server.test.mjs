@@ -66,7 +66,7 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal((await call('/api/admin/settings?branch=two-branch',{authHeader:loginAuth})).status,401);
     assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:'Basic '+Buffer.from('admin:wrong').toString('base64')})).status,401);
     assert.equal((await call('/api/admin/settings',{authHeader:loginAuth})).status,401);
-    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,120);
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,75);
     const idle=await call('/api/admin/settings?branch=one-branch',{method:'PUT',authHeader:loginAuth,body:{idleTimeoutSec:45,resetOnDisconnect:false}});
     assert.equal(idle.status,200);
     assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,45);
