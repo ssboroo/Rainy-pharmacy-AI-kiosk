@@ -533,6 +533,24 @@ function wire(){
   const tick=()=>{$('clock').textContent=new Intl.DateTimeFormat('mn-MN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Ulaanbaatar'}).format(new Date());};
   tick();setInterval(tick,30000);
 }
+function startDeviceHeartbeat(){
+  const key='rainy-device-'+(branchSlug||'default');
+  let credentials;
+  try{credentials=JSON.parse(localStorage.getItem(key)||'null');}catch{return;}
+  if(!credentials?.id||!credentials?.token)return;
+  const send=async()=>{
+    try{
+      const response=await fetch(scopedPath('/api/device/heartbeat'),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:credentials.id,token:credentials.token,status:{version:'0.1.0',voiceReady:!!config?.voiceReady}}),
+        cache:'no-store'
+      });
+      if(response.status===401)localStorage.removeItem(key);
+    }catch{}
+  };
+  void send();
+  setInterval(()=>{if(document.visibilityState==='visible')void send();},60000);
+}
 async function init(){
   wire();
   try{
@@ -566,6 +584,7 @@ async function init(){
     renderAvatars();
     await loadPremium2D5();
     await loadMedicineIndex();
+    startDeviceHeartbeat();
     makeWakeListener();
     if(localStorage.getItem(KIOSK_STORAGE_KEY)==='1'){
       document.body.classList.add('immersive-kiosk');
