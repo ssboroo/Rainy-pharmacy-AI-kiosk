@@ -266,9 +266,9 @@ async function handle(req,res){
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings:ctx.settings});
       if(req.method==='GET'&&route==='/api/admin/catalog')return respond(res,200,{items:ctx.catalog});
       if(req.method==='PUT'&&route==='/api/admin/settings'){
-        const input=await bodyJson(req,12000);
+        const input=await bodyJson(req,305000);
         const value=await ctx.updateSettings(input);
-        return respond(res,200,{settings});
+        return respond(res,200,{settings:value});
       }
       if(req.method==='PUT'&&route==='/api/admin/catalog'){
         const input=await bodyJson(req,1000000);
