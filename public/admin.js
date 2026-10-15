@@ -21,7 +21,7 @@ $('login').onclick=async()=>{
     $('currentBranchBanner').textContent=branchSlug?'🔐 Салбарын тусгаарлагдсан админ: '+branchSlug:'✦ Үндсэн / төв эмийн сангийн админ';
     if(!branchSlug){$('branchManager').hidden=false;$('organizationOperations').hidden=false;await loadBranches();await refreshOrganization();}
     else $('branchManager').hidden=true;
-    $('editor').hidden=false;$('token').value='';show('Амжилттай нэвтэрлээ.');
+    $('editor').hidden=false;initAdminNavigation();$('token').value='';show('Амжилттай нэвтэрлээ.');
     await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices(),refreshIntegrations()]);
   }catch(e){token='';show('Нэвтэрч чадсангүй: '+e.message);}
 };
@@ -385,4 +385,54 @@ $('backupNow').onclick=async()=>{
  const button=$('backupNow');button.disabled=true;
  try{const saved=await api('organization/backups/create','POST',{});show('Backup үүслээ: '+saved.backup.filename+' · Энэ нь local volume хуулбар.');await refreshOrganization();}
  catch(error){show('Backup алдаа: '+error.message);}finally{button.disabled=false;}
+};
+
+const adminMenu=[
+ {id:'overview',icon:'▦',label:'Ерөнхий тойм',hint:'Нэгдсэн тайлан',platform:true},
+ {id:'branches',icon:'▤',label:'Салбар ба эрх',hint:'Subscription',platform:true},
+ {id:'analytics',icon:'◫',label:'Аналитик',hint:'Үр дүнгийн тайлан'},
+ {id:'devices',icon:'▣',label:'Төхөөрөмж',hint:'Киоск мониторинг'},
+ {id:'integrations',icon:'◈',label:'AI ба POS',hint:'Холболтын төлөв'},
+ {id:'catalog',icon:'☷',label:'Эмийн каталог',hint:'Мэдээлэл ба импорт'},
+ {id:'settings',icon:'⚙',label:'Брэнд, AI тохиргоо',hint:'Дүр ба яриа'},
+ {id:'security',icon:'◇',label:'Аюулгүй байдал',hint:'Интеграцийн зөвлөмж'}
+];
+let activeAdminView=branchSlug?'analytics':'overview';
+function showAdminView(id){
+ const allowed=adminMenu.filter(m=>!m.platform||!branchSlug);
+ if(!allowed.some(m=>m.id===id))id=allowed[0].id;
+ activeAdminView=id;
+ for(const view of document.querySelectorAll('.admin-view'))view.hidden=view.dataset.view!==id;
+ for(const button of document.querySelectorAll('#adminNavigation button')){
+  const selected=button.dataset.target===id;
+  button.classList.toggle('is-active',selected);
+  button.setAttribute('aria-current',selected?'page':'false');
+ }
+ const selected=adminMenu.find(m=>m.id===id);
+ $('adminViewTitle').textContent=selected.label;
+ $('adminBreadcrumb').textContent='RAINY / '+selected.hint.toUpperCase();
+ document.querySelector('.admin-side').classList.remove('is-open');
+ $('adminNavToggle').setAttribute('aria-expanded','false');
+ try{history.replaceState(null,'',location.pathname+(branchSlug?'?branch='+encodeURIComponent(branchSlug)+'&':'?')+'tab='+encodeURIComponent(id));}catch{}
+}
+function initAdminNavigation(){
+ const nav=$('adminNavigation');nav.replaceChildren();
+ for(const item of adminMenu.filter(x=>!x.platform||!branchSlug)){
+  const button=document.createElement('button');button.type='button';
+  button.className='admin-nav-link';button.dataset.target=item.id;
+  const glyph=document.createElement('span');glyph.className='admin-nav-icon';glyph.textContent=item.icon;
+  const labels=document.createElement('span');labels.className='admin-nav-label';
+  const title=document.createElement('strong');title.textContent=item.label;
+  const hint=document.createElement('small');hint.textContent=item.hint;labels.append(title,hint);
+  button.append(glyph,labels);
+  button.onclick=()=>showAdminView(item.id);nav.append(button);
+ }
+ const query=new URLSearchParams(location.search).get('tab');
+ showAdminView(adminMenu.some(x=>x.id===query)?query:activeAdminView);
+ $('adminBranchPill').textContent=branchSlug?'Салбар: '+branchSlug:'Төв удирдлага';
+}
+$('adminNavToggle').onclick=()=>{
+ const side=document.querySelector('.admin-side');
+ const opened=side.classList.toggle('is-open');
+ $('adminNavToggle').setAttribute('aria-expanded',String(opened));
 };

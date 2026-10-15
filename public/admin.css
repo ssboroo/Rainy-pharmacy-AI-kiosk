@@ -96,3 +96,46 @@
 .ops-audit{max-height:200px;overflow:auto}
 .ops-audit-item{font-size:11px;padding:8px 0;border-top:1px solid #edf2f0;color:#557367}
 @media(max-width:720px){.ops-metrics{grid-template-columns:repeat(2,1fr)}.ops-two-col{grid-template-columns:1fr}}
+
+
+/* RAINY / Premium pharmacy SaaS console */
+:root{--ink:#193b35;--muted:#71857c;--line:#e1ebe6;--paper:#fff;--canvas:#f5f8f5;--pine:#173e35;--mint:#c5edd9}
+body{background:var(--canvas);color:var(--ink)}
+.admin-wrap{max-width:1560px;padding:23px clamp(15px,3vw,50px) 40px}
+.public-admin-header{font-size:11px;letter-spacing:.12em;padding:2px 0 24px;border-bottom:1px solid #e3eae5;color:#6d857c}
+.public-admin-header a{font-weight:900;color:#235a4c}
+.admin-intro{display:flex;align-items:center;justify-content:space-between;padding:13px 2px 7px}
+.admin-eyebrow{font-size:10px;color:#4a997b;font-weight:900;letter-spacing:.22em}
+.admin-intro h1{margin:12px 0 7px;font-size:clamp(30px,3.5vw,52px);letter-spacing:-2px;line-height:1.08;color:#1b3d35}
+.admin-intro h1 span{color:#55ba91}.admin-intro .sub{font-size:13px}
+.admin-header-decoration{font-size:96px;color:#dfede4;line-height:1}
+.admin-layout{display:grid;grid-template-columns:255px minmax(0,1fr);gap:22px;align-items:start;margin-top:14px}
+.admin-side{background:#153b34;color:#f7fffb;border-radius:22px;min-height:calc(100vh - 210px);padding:23px 13px;position:sticky;top:18px;display:flex;flex-direction:column;box-shadow:0 20px 55px #153b3418}
+.side-brand{display:flex;align-items:center;gap:12px;padding:7px 12px 27px;border-bottom:1px solid #ffffff20}
+.side-symbol{display:grid;place-items:center;width:40px;height:40px;background:#c2f0d6;color:#14533e;border-radius:13px;font-size:24px}
+.side-brand strong{display:block;font-size:24px;letter-spacing:-1.5px}.side-brand strong span{color:#76d4a9}.side-brand small{display:block;font-size:9px;letter-spacing:.2em;color:#9fc5b8}
+.side-section-label{padding:24px 13px 11px;font-size:9px;font-weight:900;letter-spacing:.19em;color:#8fb8a7}
+.admin-navigation{display:grid;gap:5px}.admin-nav-link{width:100%;border-radius:12px;background:transparent;color:#abc7ba;text-align:left;display:flex;align-items:center;gap:12px;padding:11px 13px;white-space:normal;border:1px solid transparent;transition:background .16s,border-color .16s}
+.admin-nav-link:hover{background:#ffffff12;color:#fff}.admin-nav-link.is-active{background:#d8f6e5;color:#164d37;border-color:#9ddfbb;box-shadow:0 5px 15px #071e1517}
+.admin-nav-icon{display:grid;place-items:center;width:30px;height:30px;font-size:19px;flex:none}.admin-nav-label{display:grid;gap:2px}.admin-nav-label strong{font-size:12px;line-height:1.4}.admin-nav-label small{font-size:10px;color:inherit;opacity:.63}
+.side-bottom{margin-top:auto;padding:30px 14px 2px;color:#b7d8c9;font-size:11px}.side-status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#70d7a0;margin-right:5px}.side-kiosk{display:block;margin-top:15px;color:#c9f8de;font-weight:800}
+.admin-main{min-width:0;max-width:100%}.admin-topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:19px 5px 22px;border-bottom:1px solid #e1e9e3;margin-bottom:17px}
+#adminBreadcrumb{font-size:10px;letter-spacing:.16em;color:#689a84;font-weight:800}#adminViewTitle{font-size:26px;letter-spacing:-.8px;margin:7px 0 0}
+.topbar-actions{display:flex;align-items:center;gap:10px}#adminBranchPill{font-size:11px;border:1px solid #cce2d4;color:#387964;padding:9px 13px;border-radius:999px;background:#ebf7ee;font-weight:800}
+.nav-mobile-toggle{display:none}.admin-content{min-width:0}.admin-view{min-width:0;animation:rise .22s ease}
+.admin-view[hidden]{display:none!important}@keyframes rise{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}
+.admin-content>.admin-view>section,.admin-content>.admin-view>.panel{margin-top:0;margin-bottom:17px}
+.admin-content .panel,.admin-content .insights-panel,.admin-content .organization-operations,.admin-content .branch-manager,.admin-content .device-section{background:white;border:1px solid #e1eae3;border-radius:18px;padding:clamp(17px,2.4vw,27px);box-shadow:0 4px 20px #173e3507}
+.admin-content .insights-panel,.admin-content .organization-operations{background:#fff}
+.admin-content h2{letter-spacing:-.6px}.admin-content h3{letter-spacing:-.2px}
+.admin-content input,.admin-content select,.admin-content textarea{background:#fafcfb;border-color:#dce7df;border-radius:11px}
+.admin-content button:not(.admin-nav-link){border-radius:10px}
+.admin-content .ops-stat{background:#f9fcfa}.admin-content .metric-card{box-shadow:none}.admin-content .metric-primary{background:linear-gradient(130deg,#164f3d,#298b64)}
+.admin-content .branch-manager,.admin-content .brand-settings,.admin-content .voice-test-panel{background:#fff}
+#status{position:fixed;right:22px;bottom:22px;z-index:40;max-width:min(450px,calc(100vw - 44px));padding:13px 18px;border-radius:12px;background:#163e33;color:#f4fff8;box-shadow:0 13px 30px #153c3330;font-size:12px}
+#status:empty{display:none}
+.admin-content pre{overflow:auto;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+button:focus-visible,a:focus-visible{outline:3px solid #6fceaa;outline-offset:3px}
+@media(max-width:1130px){.admin-layout{grid-template-columns:220px minmax(0,1fr);gap:13px}.admin-side{padding:17px 7px}}
+@media(max-width:800px){.admin-layout{display:block}.admin-side{display:none;position:static;min-height:unset;margin-bottom:15px}.admin-side.is-open{display:flex}.nav-mobile-toggle{display:inline-flex;padding:10px 13px}.admin-intro{padding-top:13px}.admin-header-decoration{display:none}.admin-topbar{padding-top:8px}.admin-content .ops-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:530px){.admin-wrap{padding:15px 11px}.admin-intro h1{font-size:30px}.public-admin-header{padding-bottom:13px}.admin-intro .sub{font-size:12px}.admin-content .panel,.admin-content .insights-panel,.admin-content .organization-operations,.admin-content .branch-manager,.admin-content .device-section{padding:15px}.admin-topbar{align-items:flex-start}#adminViewTitle{font-size:20px}.topbar-actions{flex-wrap:wrap;justify-content:end}#adminBranchPill{font-size:9px}.admin-content button{max-width:100%;white-space:normal}}
