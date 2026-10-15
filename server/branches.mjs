@@ -182,14 +182,22 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
   // Mutations are serialized and durably written before confirming to the caller.
   // This is an INTERNAL per-signed-URL allowance ledger. It is not ElevenLabs'
   // actual metered provider credit balance or billed minutes.
-  async function changePayg(slug,action,{amount=1,note='',eventId}={}){
+  async function changePayg(slug,action,{amount=1,note='',eventId,requestId}={}){
     validateBranchSlug(slug);
     if(action==='topup'&&(!Number.isSafeInteger(amount)||amount<1||amount>100000))throw Object.assign(Error('Кредит 1–100000 хооронд байна.'),{code:400});
     if(typeof note!=='string'||note.length>160)throw Object.assign(Error('Тэмдэглэл буруу.'),{code:400});
+    if(requestId!==undefined&&(typeof requestId!=='string'||!/^[a-f0-9-]{16,64}$/i.test(requestId)))throw Object.assign(Error('Idempotency key буруу.'),{code:400});
     const work=writes.catch(()=>{}).then(async()=>{
       const row=registry.get(slug);
       if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
       const payg=row.payg||{balance:0,spent:0,events:[]};
+      if(action==='topup'&&requestId){
+        const previous=(payg.events||[]).find(x=>x.action==='topup'&&x.requestId===requestId);
+        if(previous){
+          if(previous.amount!==amount)throw Object.assign(Error('Ижил хүсэлтийн кодоор өөр кредит нэмэх боломжгүй.'),{code:409});
+          return {balance:payg.balance,spent:payg.spent,eventId:previous.id,duplicate:true};
+        }
+      }
       if(action==='reserve'&&(row.subscription?.plan!=='payg'||row.subscription?.status!=='active'||payg.balance<1))
         throw Object.assign(Error('PAYG кредит хүрэлцэхгүй эсвэл эрх идэвхгүй.'),{code:402});
       if(action==='refund'&&(!eventId||!(payg.events||[]).some(x=>x.id===eventId&&x.action==='reserve')))
@@ -200,7 +208,7 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
       if(!Number.isSafeInteger(nextBalance)||nextBalance<0||nextBalance>1000000)throw Object.assign(Error('Кредитийн хэмжээ зөвшөөрөгдөхгүй.'),{code:409});
       const nextSpent=action==='reserve'?payg.spent+1:action==='refund'?Math.max(0,payg.spent-1):payg.spent;
       const id=randomBytes(16).toString('hex');
-      const event={id,at:new Date().toISOString(),action,amount:action==='topup'?amount:1,note:note.trim(),...(action==='refund'?{reversalOf:eventId}:{})};
+      const event={id,at:new Date().toISOString(),action,amount:action==='topup'?amount:1,note:note.trim(),...(action==='refund'?{reversalOf:eventId}:{}),...(action==='topup'&&requestId?{requestId}:{})};
       const replacement={...row,payg:{balance:nextBalance,spent:nextSpent,events:[...(payg.events||[]),event].slice(-1000)}};
       await atomicWrite(registryFile,{version:1,branches:[...registry.values()].map(x=>x.slug===slug?replacement:x)});
       registry.set(slug,replacement);
