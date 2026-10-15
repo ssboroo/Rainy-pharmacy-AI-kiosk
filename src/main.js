@@ -1,4 +1,5 @@
 import {Conversation} from '@elevenlabs/client';
+import {createVoiceAttempt,voiceFailureMessage} from './voice-session.js';
 import {ELEVENLABS_WORKLET_PATHS} from './voice-worklets.js';
 import {findMedicineMention} from './medicine-panel.js';
 import './style.css';
@@ -18,7 +19,7 @@ let lastWakeAt=0;
 let avatar25=null,localSessionWanted=false;
 let analyticsSessionRecorded=false;
 let resettingVisitor=false,visitorEpoch=0;
-let voiceCapTimer=null;
+let voiceCapTimer=null,voiceAttempt=null;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -308,6 +309,7 @@ async function restoreMicIfGranted(){
   updateMicrophoneUI();
 }
 async function stopVoice(resumeWake=true){
+  voiceAttempt?.cancel();voiceAttempt=null;
   clearTimeout(voiceCapTimer);voiceCapTimer=null;
   localSessionWanted=false;
   try{window.speechSynthesis?.cancel();}catch{}
@@ -382,11 +384,19 @@ async function startVoice(fromWake=false){
     try{
       setStatus('connecting');
       const startedAt=visitorEpoch;
+      const attempt=createVoiceAttempt();voiceAttempt=attempt;
+      const current=()=>voiceAttempt===attempt&&startedAt===visitorEpoch;
+      const reportFailure=details=>{
+        if(!current())return;
+        const message=attempt.fail(details);
+        $('voiceHint').textContent=message;
+        if(!attempt.reported){attempt.reported=true;trackAnalytics('voiceFailed');addMessage('assistant',message);}
+      };
       const voiceContext=await api('/agent/voice-context');
-      if(startedAt!==visitorEpoch){voiceStarting=false;return;}
+      if(!current()||attempt.closed){if(current())voiceStarting=false;return;}
       if(branchSlug&&!voiceContext.catalogCount)throw Error('Баталгаажсан эмийн каталог хараахан байхгүй');
       const signed=await api('/agent/signed-url');
-      if(startedAt!==visitorEpoch){voiceStarting=false;return;}
+      if(!current()||attempt.closed){if(current())voiceStarting=false;return;}
       // ElevenLabs Agent Security must permit per-conversation prompt and ASR
       // keyword overrides. If it does not, the catch handler uses the
       // catalog-only local STT route instead of an unscoped live agent.
@@ -397,21 +407,22 @@ async function startVoice(fromWake=false){
         overrides,
         connectionType:'websocket',
         workletPaths:ELEVENLABS_WORKLET_PATHS,
-        onConnect:()=>{setStatus('listening');trackAnalytics('voiceConnected');},
-        onDisconnect:()=>{
-          if(config?.resetOnDisconnect!==false&&!resettingVisitor){
-            queueMicrotask(()=>{void resetVisitorSession();});
-          }
-          conversation=null;
-          voiceStarting=false;
+        onConnect:()=>{if(current()&&!attempt.closed){setStatus('listening');$('voiceHint').textContent='Дуут холболт тогтлоо · Асуултаа хэлнэ үү';trackAnalytics('voiceConnected');}},
+        onDisconnect:details=>{
+          if(!current())return;
+          const message=attempt.disconnect(details);
+          conversation=null;voiceStarting=false;
+          clearTimeout(voiceCapTimer);voiceCapTimer=null;
           $('micBtnText').textContent='Ярилцлага эхлүүлэх';
-          setStatus(wakeListener?.enabled?'wake':'ready');
-          wakeListener?.resume(1800);
+          setStatus('ready');
+          // Preserve errors on screen; do not reset the visitor or auto-retry billing.
+          if(message)reportFailure(details);
+          if(details?.reason==='user')wakeListener?.resume(1800);
         },
-        onError:()=>{trackAnalytics('voiceFailed');toast('ElevenLabs холболт тасарлаа. Эм зүйчээс лавлах эсвэл бичгээр асууна уу.');},
-        onModeChange:mode=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
+        onError:message=>reportFailure({reason:'error',message}),
+        onModeChange:mode=>{if(current()&&!attempt.closed)setStatus(mode.mode==='speaking'?'speaking':'listening');},
         onMessage:message=>{
-          if(startedAt!==visitorEpoch)return; // Old patient's delayed voice output must not enter a fresh session.
+          if(!current()||attempt.closed)return; // Old patient's delayed voice output must not enter a fresh session.
           const text=message.message;
           // Defense-in-depth: an external ElevenLabs Agent must also have
           // pharmacist-reviewed prompts. This client cannot mute audio already
@@ -431,13 +442,16 @@ async function startVoice(fromWake=false){
           }
         }
       });
-      if(startedAt!==visitorEpoch){await live.endSession();voiceStarting=false;return;}
+      if(!current()||attempt.closed){await live.endSession();if(current())voiceStarting=false;return;}
       conversation=live;voiceStarting=false;startVoiceVisuals();
       return;
     }catch(e){
       voiceStarting=false;
       trackAnalytics('voiceFailed');
-      toast('ElevenLabs холболт боломжгүй: '+e.message+'. Browser дуут танилт руу шилжиж байна.');
+      const failure=voiceFailureMessage({message:e.message,closeCode:e.closeCode,closeReason:e.closeReason});
+      $('voiceHint').textContent=failure;
+      addMessage('assistant',failure+' Browser-ийн дуут танилтыг туршиж байна.');
+      toast(failure);
       await stopVoice(false);
       // Keep the same bounded duration even in local STT fallback.
       voiceCapTimer=setTimeout(()=>{void resetVisitorSession();},180000);
