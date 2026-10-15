@@ -380,6 +380,22 @@ async function handle(req,res){
       }
       // Platform owner can configure a particular organization without borrowing its password.
       // Explicit branch slug, small allowlist and server-side owner authorization.
+      if(route==='/api/admin/branches/catalog'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        if(req.method==='GET'){
+          const slug=url.searchParams.get('slug');
+          const instance=registry.get(slug);
+          return respond(res,200,{slug,items:instance.catalog});
+        }
+        if(req.method==='PUT'){
+          const input=await bodyJson(req,1000000);
+          if(!input||typeof input.slug!=='string'||!Array.isArray(input.items))return respond(res,400,{error:'Байгууллага болон каталог шаардлагатай.'});
+          const instance=registry.get(input.slug);
+          const items=await instance.updateCatalog(input.items);
+          await audit.record('catalog.updated',input.slug);
+          return respond(res,200,{slug:input.slug,count:items.length});
+        }
+      }
       if(route==='/api/admin/branches/config'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
         if(req.method==='GET'){
