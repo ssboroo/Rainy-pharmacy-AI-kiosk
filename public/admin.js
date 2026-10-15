@@ -1,3 +1,4 @@
+import {parseCatalogCSV} from './catalog-csv.js';
 let token='';
 const $=id=>document.getElementById(id);
 const branchSlug=new URLSearchParams(window.location.search).get('branch')||'';
@@ -246,4 +247,18 @@ $('subscriptionForm').onsubmit=async e=>{
     await loadBranches();
   }catch(error){show('Эрхийн алдаа: '+error.message);}
   finally{$('subscriptionSave').disabled=false;}
+};
+
+$('catalogCsvImport').onclick=async()=>{
+  const file=$('catalogCsvFile').files?.[0];
+  if(!file){show('CSV файлаа сонгоно уу.');return;}
+  if(file.size>1000000){show('CSV файл 1MB-аас бага байх ёстой.');return;}
+  try{
+    const parsed=parseCatalogCSV(await file.text());
+    const current=JSON.parse($('catalog').value||'[]');
+    if(!Array.isArray(current))throw Error('Одоогийн каталог буруу.');
+    // Preview only; require operator explicitly save to replace catalog.
+    $('catalog').value=JSON.stringify(parsed,null,2);
+    show(parsed.length+' эмийг CSV-ээс уншлаа. Бодит каталогоо солихоос өмнө мэдээллээ шалгаад "Каталог хадгалах" дарна уу.');
+  }catch(error){show('CSV импортын алдаа: '+error.message);}
 };
