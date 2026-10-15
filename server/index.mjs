@@ -326,7 +326,7 @@ async function handle(req,res){
       if(route==='/api/admin/organization/backups'&&req.method==='GET'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
         return respond(res,200,{files:await backupManager.list(),location:'local-volume',
-          offsiteConfigured:!!offsite,offsiteVerified:!!operationsState.offsiteLastVerifiedAt,
+          offsiteConfigured:!!offsite,offsiteReplicated:!!operationsState.offsiteLastVerifiedAt,offsiteVerified:!!operationsState.offsiteLastVerifiedAt,
           offsiteLastVerifiedAt:operationsState.offsiteLastVerifiedAt,
           postgresMirrorConnected:operationsState.postgresConnected,livePrimary:'existing-file-store',
           restoreTested:!!operationsState.offsiteLastVerifiedAt});
