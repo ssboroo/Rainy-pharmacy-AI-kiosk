@@ -22,12 +22,16 @@ try{
    await new Promise(resolve=>setTimeout(resolve,190));
    if(parseFloat(getComputedStyle(eyelid).opacity)<.5)throw Error(id+': blink not visible');
    delete layer.dataset.ambientBlink;
+   // Headless virtual clock may not tick compositor transitions. Disable the
+   // smooth transition only in this selector-binding assertion, not in the app.
+   gaze.style.transition='none';
    layer.dataset.ambientEye='left';
    await new Promise(resolve=>setTimeout(resolve,460));
    const left=getComputedStyle(gaze).transform;
    layer.dataset.ambientEye='right';
    await new Promise(resolve=>setTimeout(resolve,460));
-   if(left===getComputedStyle(gaze).transform)throw Error(id+': gaze did not move');
+   if(left===getComputedStyle(gaze).transform)throw Error(id+': gaze CSS targets did not differ');
+   gaze.style.removeProperty('transition');
    layer.dataset.idleGesture='yawn';
    if(!getComputedStyle(layer.querySelector('.avatar25-idle-yawn-mouth')).animationName.includes('rainy-idle-yawn-mouth'))throw Error(id+': yawn animation not applied');
    layer.dataset.idleGesture='stretch';
