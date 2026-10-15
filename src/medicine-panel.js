@@ -28,7 +28,7 @@ function tokenScore(query,alias){
    const token=qt[offset+i],name=at[i];
    if(token===name)continue;
    if(i===at.length-1&&endings.some(end=>token===name+end)){score=Math.min(score,.97);continue;}
-   if(name.length>=7&&token.length>=7&&
+   if(name.length>=9&&token.length>=9&&
     // Avoid transliteration guesses and unsafe short near-matches.
     /^[\p{Script=Cyrillic}]+$/u.test(name)&&/^[\p{Script=Cyrillic}]+$/u.test(token)){
     const distance=editDistance(token,name);
