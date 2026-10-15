@@ -13,3 +13,7 @@ export function getWakeRetryDelay(error,attempt=1) {
 export function toneForState(state) {
   return ({listening:'attentive',speaking:'warm',connecting:'thinking',emergency:'concerned'})[state]||'calm';
 }
+
+export function isBusinessHour(date=new Date()){return Number(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hourCycle:'h23',timeZone:'Asia/Ulaanbaatar'}).format(date))>=8&&Number(new Intl.DateTimeFormat('en-GB',{hour:'2-digit',hourCycle:'h23',timeZone:'Asia/Ulaanbaatar'}).format(date))<22;}
+
+export function acceptVoiceTranscript(value,confidence){if(typeof value!=='string')return false;const text=value.trim();if(text.length<3||text.length>280)return false;if(['за','аан','ээ','мм','ok','hello','hi','сайн уу'].includes(text.toLowerCase()))return false;return !(typeof confidence==='number'&&confidence>0&&confidence<0.65);}
