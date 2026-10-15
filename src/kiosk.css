@@ -127,3 +127,16 @@ body.immersive-kiosk{overflow:hidden}
   .medicine-live-icon{width:30px;height:30px;font-size:15px}
   .medicine-live-meta{margin:6px 0}
 }
+
+/* Site identity: pharmacy logo deserves a real, readable space. */
+.brand-mark{display:grid!important;grid-template-columns:1fr;align-content:start;justify-items:start;gap:13px!important;padding:8px 8px 31px!important;min-width:0}
+.sidebar-brand-logo{width:min(180px,100%)!important;height:67px!important;max-width:100%!important;max-height:67px!important;object-fit:contain!important;object-position:left center!important;background:#fff;border-radius:13px;padding:9px 12px;box-shadow:0 5px 15px #021a111c}
+.brand-mark>div{display:block;min-width:0}
+.brand-mark strong{font-size:clamp(25px,2vw,33px)!important;line-height:1.05}
+.brand-mark small{letter-spacing:2.2px!important;font-size:9px!important}
+.sidebar-nav{gap:4px!important}.nav-item{padding:9px 12px!important;min-height:60px!important;gap:12px!important}
+.nav-item .nav-text{font-size:12px!important;line-height:1.32!important;font-weight:750}
+.nav-icon{flex:0 0 40px!important;width:40px!important;height:40px!important}
+@media(min-width:1101px) and (min-height:700px){.sidebar{padding-top:20px!important}.brand-mark{padding-bottom:18px!important}.nav-item{min-height:54px!important}}
+@media(max-width:1000px) and (min-width:681px){.brand-mark{justify-items:center}.sidebar-brand-logo{width:57px!important;height:52px!important;padding:5px!important}.brand-mark>div{display:none}}
+@media(max-width:680px){.brand-mark{display:none!important}}
