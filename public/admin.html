@@ -30,6 +30,15 @@
       <button type="button" id="ownerCatalogSave">Сонгосон байгууллагын каталог хадгалах</button>
       <p class="device-disclaimer">Эмийн мэдээлэл, тун, зааврыг эм зүйч заавал баталгаажуулна. CSV импорт автоматаар verified=true болгохгүй.</p>
     </section>
+    <form id="ownerCredentialForm" class="subscription-panel">
+      <h3>Байгууллагын нэвтрэх код / админ токен солих</h3>
+      <p>Төв админ зөвхөн сонгосон байгууллагын эрхийг шинэчилнэ. Хуучин код болон токен даруй хүчингүй болно. Нууц утгуудыг дэлгэцэд буцааж уншихгүй.</p>
+      <label>Байгууллага<select id="ownerCredentialSlug" required><option value="">Байгууллага сонгох</option></select></label>
+      <label>Шинэ нэвтрэх нэр (заавал биш)<input id="ownerLoginName" placeholder="manager" autocomplete="off" pattern="[a-z][a-z0-9._-]{2,39}"/></label>
+      <label>Шинэ нэвтрэх код (16+ тэмдэгт)<input id="ownerLoginCode" type="password" minlength="16" maxlength="128" autocomplete="new-password" placeholder="Солихгүй бол хоосон үлдээнэ"/></label>
+      <label>Шинэ салбарын админ токен (24+ тэмдэгт)<input id="ownerAdminToken" type="password" minlength="24" maxlength="128" autocomplete="new-password" placeholder="Солихгүй бол хоосон үлдээнэ"/></label>
+      <button type="submit">Нэвтрэх мэдээлэл солих</button>
+    </form>
     <form id="ownerBranchConfig" class="subscription-panel">
       <h3>Байгууллагын AI холболт, session тохиргоо</h3>
       <p>Төв админ байгууллагаа сонгож Agent ID, AI нэр болон харилцан ярианы автоматаар цэвэрлэх тохиргоог шууд удирдана. API key нь Railway серверийн нууц тохиргоонд байна.</p>
@@ -59,7 +68,7 @@
 </div><div id="currentBranchBanner" class="current-branch-banner"></div><div class="admin-view" data-view="overview"><section id="organizationOperations" class="organization-operations" hidden>
   <div class="ops-heading"><div><span class="insights-eyebrow">RAINY BUSINESS OPERATIONS</span><h2>Нэгдсэн байгууллагын тайлан</h2><p>Төв админы бүх салбарын нэгтгэсэн ашиглалт, төхөөрөмжийн төлөв, аудит, нөөцлөлт.</p></div><div><select id="orgWindow"><option value="7">7 хоног</option><option value="30" selected>30 хоног</option><option value="90">90 хоног</option></select><button id="orgRefresh" type="button">Шинэчлэх</button></div></div>
   <div id="orgMetrics" class="ops-metrics"></div>
-  <div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>Салбар</th><th>Эрх</th><th>Асуулт</th><th>Баталгаатай хариулт</th><th>Эм зүйчид</th><th>Онлайн төхөөрөмж</th></tr></thead><tbody id="orgRows"></tbody></table></div>
+  <div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>Салбар</th><th>Эрх</th><th>Асуулт</th><th>Баталгаатай хариулт</th><th>Эм зүйчид</th><th>Онлайн төхөөрөмж</th><th>Voice холболт</th><th>ElevenLabs credit</th></tr></thead><tbody id="orgRows"></tbody></table></div>
   <div class="ops-two-col">
    <div class="ops-panel"><h3>SLA ба төхөөрөмжийн хяналт</h3><p id="slaStatus">Төлөвийг уншиж байна...</p><p class="device-disclaimer">Энэ бол одоогийн heartbeat-ын ажиглалт. Серверийн 24/7 тасралтгүй uptime баталгаажуулалт болон гэрээний SLA хэмжүүр биш.</p><div class="ops-backups"><h3>Орон нутгийн backup</h3><p id="backupStatus">Backup жагсаалтыг ачаалж байна.</p><button id="backupNow" type="button">Нөөц хуулбар үүсгэх</button> <button id="backupDownload" type="button" hidden>Сүүлийн backup татах</button><p class="device-disclaimer" id="backupModeExplanation">PostgreSQL болон шифрлэсэн off-site backup-ын бодит холболтыг шалгаж байна.</p><pre id="storageStatus" style="white-space:pre-wrap;font-size:11px"></pre></div></div>
    <div class="ops-panel"><h3>Үйлдлийн аудит</h3><p>Админы тохиргоо, каталог, эрх, төхөөрөмж, backup экспортын үйлдлүүдийн түүх.</p><div id="operationsAudit" class="ops-audit"></div></div>
