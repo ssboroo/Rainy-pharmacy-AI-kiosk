@@ -27,8 +27,8 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
   child.stderr.on('data',x=>logs+=x.toString());
   const base='http://127.0.0.1:'+port;
   const rootAuth={Authorization:'Bearer '+token};
-  async function call(path,{method='GET',auth='',body}={}){
-    const headers={...(auth?{Authorization:'Bearer '+auth}:{}),...(body?{'Content-Type':'application/json'}:{})};
+  async function call(path,{method='GET',auth='',authHeader='',body}={}){
+    const headers={...(authHeader?{Authorization:authHeader}:auth?{Authorization:'Bearer '+auth}:{}),...(body?{'Content-Type':'application/json'}:{})};
     const result=await fetch(base+path,{method,headers,body:body?JSON.stringify(body):undefined});
     const text=await result.text();
     let data;try{data=JSON.parse(text);}catch{data=text;}
@@ -48,6 +48,18 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     const two=await call('/api/admin/branches',{method:'POST',auth:token,body:{slug:'two-branch',name:'Эмийн сан 2'}});
     assert.equal(one.status,201);assert.equal(two.status,201);
     const key1=one.data.branch.adminToken,key2=two.data.branch.adminToken;
+    assert.equal(one.data.branch.loginName,'admin');
+    assert.ok(one.data.branch.loginCode.length>=32);
+    const loginAuth='Basic '+Buffer.from('admin:'+one.data.branch.loginCode).toString('base64');
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:loginAuth})).status,200);
+    assert.equal((await call('/api/admin/settings?branch=two-branch',{authHeader:loginAuth})).status,401);
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:'Basic '+Buffer.from('admin:wrong').toString('base64')})).status,401);
+    assert.equal((await call('/api/admin/settings',{authHeader:loginAuth})).status,401);
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,120);
+    const idle=await call('/api/admin/settings?branch=one-branch',{method:'PUT',authHeader:loginAuth,body:{idleTimeoutSec:45,resetOnDisconnect:false}});
+    assert.equal(idle.status,200);
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.idleTimeoutSec,45);
+    assert.equal((await call('/api/bootstrap?branch=two-branch')).data.idleTimeoutSec,120);
     assert.equal((await call('/api/bootstrap?branch=one-branch')).data.subscription.active,false);
     assert.equal((await call('/api/catalog?branch=one-branch')).status,403);
     assert.equal((await call('/api/admin/branches/subscription?branch=one-branch',{auth:key1})).status,403);
