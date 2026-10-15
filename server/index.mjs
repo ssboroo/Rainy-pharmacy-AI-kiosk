@@ -250,7 +250,7 @@ async function handle(req,res){
     const entitlement=hasBranch?registry.subscription(url.searchParams.get('branch')):{status:'active',active:true,expiresAt:null,plan:'legacy'};
     // Branch admins may continue managing the catalog after expiration;
     // however no public AI, inventory, tracking or vision endpoints run.
-    if(hasBranch&&!entitlement.active&&route.startsWith('/api/')&&!route.startsWith('/api/admin/')&&route!=='/api/health'&&route!=='/api/bootstrap')
+    if(hasBranch&&!entitlement.active&&route.startsWith('/api/')&&!route.startsWith('/api/admin/')&&route!=='/api/health'&&route!=='/api/bootstrap'&&!(entitlement.plan==='payg'&&route==='/api/voice/triage'))
       return respond(res,entitlement.plan==='payg'?402:403,{error:entitlement.plan==='payg'?'PAYG кредит хүрэлцэхгүй. Админаас кредит цэнэглэнэ үү.':'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
@@ -404,9 +404,10 @@ async function handle(req,res){
         if(req.method==='PUT'){
           const input=await bodyJson(req,1600);
           if(!input||typeof input!=='object'||Array.isArray(input)||typeof input.slug!=='string'||
-             Object.keys(input).some(k=>!['slug','amount','note'].includes(k)))
+             Object.keys(input).some(k=>!['slug','amount','note','requestId'].includes(k)))
             return respond(res,400,{error:'PAYG цэнэглэлтийн мэдээлэл буруу.'});
-          const updated=await registry.grantCredits(input.slug,{amount:input.amount,note:input.note||''});
+          if(typeof input.requestId!=='string')return respond(res,400,{error:'Давхар кредит олголтоос хамгаалах requestId шаардлагатай.'});
+          const updated=await registry.grantCredits(input.slug,{amount:input.amount,note:input.note||'',requestId:input.requestId});
           await audit.record('subscription.updated',input.slug);
           return respond(res,200,{payg:registry.paygStatus(input.slug),transaction:{amount:input.amount,eventId:updated.eventId}});
         }
