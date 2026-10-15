@@ -291,6 +291,11 @@ async function handle(req,res){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
         return respond(res,200,{files:await backupManager.list(),location:'local-volume',offsiteReplicated:false,restoreTested:false});
       }
+      if(route==='/api/admin/organization/backups/file'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        const result=await backupManager.verify(url.searchParams.get('filename'));
+        return respond(res,200,result);
+      }
       if(route==='/api/admin/organization/backups/create'&&req.method==='POST'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
         const result=await automatedSnapshot();
