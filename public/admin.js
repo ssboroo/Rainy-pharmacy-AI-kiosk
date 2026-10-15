@@ -164,9 +164,15 @@ async function loadBranches(){
       const strong=document.createElement('strong');strong.textContent=item.name;
       const small=document.createElement('small');small.textContent=item.slug;
       text.append(strong,small);
+      const subscription=document.createElement('small');
+      subscription.textContent=item.subscription.active?'● Идэвхтэй · '+item.subscription.expiresAt.slice(0,10):'○ '+({pending:'Эрх нээгээгүй',expired:'Хугацаа дууссан',paused:'Түр зогсоосон'}[item.subscription.status]||'Идэвхгүй');
+      text.append(subscription);
       const kiosk=document.createElement('a');kiosk.href='/?branch='+encodeURIComponent(item.slug);kiosk.textContent='Киоск ↗';kiosk.target='_blank';kiosk.rel='noopener';
       const admin=document.createElement('a');admin.href='/admin.html?branch='+encodeURIComponent(item.slug);admin.textContent='Админ ↗';admin.target='_blank';admin.rel='noopener';
-      row.append(text,kiosk,admin);target.append(row);
+      const manage=document.createElement('button');
+      manage.type='button';manage.className='insights-outline';manage.textContent='Эрх удирдах';
+      manage.onclick=()=>{ $('subscriptionSlug').value=item.slug;$('subscriptionDate').value=item.subscription.expiresAt?.slice(0,10)||'';$('subscriptionPlan').value=item.subscription.plan||'starter';$('subscriptionStatus').value=item.subscription.status==='paused'?'paused':'active';$('subscriptionForm').scrollIntoView({behavior:'smooth',block:'center'}); };
+      row.append(text,kiosk,admin,manage);target.append(row);
     }
   }catch(error){show('Салбаруудыг уншиж чадсангүй: '+error.message);}
 }
@@ -228,4 +234,16 @@ $('logoFile').onchange=async()=>{
 $('logoRemove').onclick=()=>{
   logoData='';$('logoFile').value='';updateLogoPreview();
   show('Лого арилсан. "Тохиргоо хадгалах" товчийг дараарай.');
+};
+
+$('subscriptionForm').onsubmit=async e=>{
+  e.preventDefault();$('subscriptionSave').disabled=true;
+  try{
+    const data={slug:$('subscriptionSlug').value,expiresAt:$('subscriptionDate').value||undefined,
+      plan:$('subscriptionPlan').value,status:$('subscriptionStatus').value,note:$('subscriptionNote').value};
+    const answer=await api('branches/subscription','PUT',data);
+    show('Салбарын эрх шинэчлэгдлээ: '+answer.subscription.status);
+    await loadBranches();
+  }catch(error){show('Эрхийн алдаа: '+error.message);}
+  finally{$('subscriptionSave').disabled=false;}
 };

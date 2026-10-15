@@ -16,6 +16,18 @@
       <div id="newBranchLinks"></div>
     </div>
     <div id="branchList" class="branch-list"></div>
+    <form id="subscriptionForm" class="subscription-panel">
+      <h3>Хугацаатай эрх удирдах</h3>
+      <p>Төв админ гараар нээнэ, сунгана эсвэл зогсооно. Онлайн төлбөр шаардахгүй.</p>
+      <div class="grid">
+        <label>Салбарын код<input id="subscriptionSlug" required placeholder="branch-code"/></label>
+        <label>Дуусах өдөр<input id="subscriptionDate" type="date"/></label>
+        <label>Багц<select id="subscriptionPlan"><option value="starter">Starter</option><option value="pro">Pro</option><option value="enterprise">Enterprise</option></select></label>
+        <label>Төлөв<select id="subscriptionStatus"><option value="active">Идэвхжүүлэх / сунгах</option><option value="paused">Түр зогсоох</option></select></label>
+      </div>
+      <label>Тэмдэглэл<input id="subscriptionNote" maxlength="160" placeholder="Гэрээ, сунгалтын тайлбар"/></label>
+      <button id="subscriptionSave" type="submit">Эрх хадгалах</button>
+    </form>
   </section>
   <div id="currentBranchBanner" class="current-branch-banner"></div>
 <section class="insights-panel" aria-labelledby="insightsTitle">

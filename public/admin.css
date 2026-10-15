@@ -71,3 +71,5 @@
 .brand-file-controls input{flex:1;max-width:280px;font-size:11px}
 .brand-file-controls button{padding:10px 12px}
 @media(max-width:700px){.branch-manager{padding:15px}.brand-settings{padding:12px}.branch-create-form button{width:100%}}
+
+.subscription-panel{border:1px solid #cbdcd4;background:#ffffffd9;border-radius:18px;padding:18px;margin-top:22px}.subscription-panel h3{margin:0 0 5px}.branch-list-item button{padding:8px 12px;font-size:11px;background:#e5f5ed;color:#216650}
