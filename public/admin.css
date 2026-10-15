@@ -43,3 +43,31 @@
 .insights-disclaimer{font-size:11px;margin:18px 0 2px;color:#6e8880;line-height:1.65}
 @media(max-width:920px){.insights-grid{grid-template-columns:repeat(2,1fr)}.insights-secondary{grid-template-columns:1fr}}
 @media(max-width:540px){.insights-grid{gap:8px}.metric-card{min-height:130px;padding:12px 10px}.metric-hint{font-size:8px}.insights-actions{width:100%}.insights-actions select{flex:1}.insights-day{min-width:11px}.insights-chart{height:165px}}
+
+/* Tenant onboarding and pharmacy logo controls */
+.branch-manager{border:1px solid #d6ebdf;background:linear-gradient(135deg,#effcf6,#eaf4fc);padding:22px;border-radius:22px;margin-bottom:30px}
+.branch-manager h2{margin:5px 0 4px}
+.branch-manager p{font-size:12px}
+.branch-create-form{display:flex;align-items:end;gap:11px;flex-wrap:wrap;margin:20px 0}
+.branch-create-form label{flex:1 1 190px;margin:0}
+.branch-create-form button{height:47px}
+.branch-list{margin-top:18px;display:grid;gap:9px}
+.branch-list h3{font-size:14px;margin-bottom:1px}
+.branch-list-item{display:flex;gap:12px;align-items:center;border:1px solid #dcebe5;background:#fff;padding:13px 15px;border-radius:14px;flex-wrap:wrap}
+.branch-list-item div{display:flex;flex:1;flex-direction:column;gap:4px}
+.branch-list-item strong{font-size:13px}
+.branch-list-item small{font-size:11px;color:#78958d}
+.branch-list-item a,.branch-credentials a{font-size:12px;text-decoration:none;color:#247d65;font-weight:750;margin-right:12px}
+.branch-credentials{background:#fff9df;border:1px solid #d4bc79;border-radius:15px;padding:18px;margin-top:15px}
+.branch-credentials strong{color:#6b5620}
+.branch-credentials code{display:block;overflow-wrap:anywhere;padding:14px;border:1px solid #efe1a6;border-radius:11px;background:#fff;letter-spacing:.8px}
+.branch-credentials button{margin:12px 0}
+.current-branch-banner{padding:11px 16px;background:#e7f8f0;border-radius:12px;color:#286f5e;font-size:12px;font-weight:800;margin-bottom:20px}
+.brand-settings{margin:18px 0 24px;padding:18px;display:flex;align-items:center;gap:19px;flex-wrap:wrap;border:1px solid #deefe7;border-radius:16px;background:#f6fbf9}
+.brand-settings h3{font-size:14px;margin:0 0 3px}
+.brand-settings p{font-size:11px;margin:0}
+.brand-settings img{width:110px;height:78px;object-fit:contain;border-radius:13px;background:white;border:1px solid #d7e5df;padding:6px}
+.brand-file-controls{display:flex;gap:10px;align-items:center;flex:1 1 240px;flex-wrap:wrap}
+.brand-file-controls input{flex:1;max-width:280px;font-size:11px}
+.brand-file-controls button{padding:10px 12px}
+@media(max-width:700px){.branch-manager{padding:15px}.brand-settings{padding:12px}.branch-create-form button{width:100%}}
