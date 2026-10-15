@@ -126,7 +126,8 @@ export class IllustratedAvatar25D{
     this.visibilityChanged=()=>this.idle.setVisible(!document.hidden);
     document.addEventListener('visibilitychange',this.visibilityChanged);
     this.motionQuery=window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    this.motionChanged=()=>this.idle.setReducedMotion(!!this.motionQuery?.matches);
+    this.idleEnabled=true;
+    this.motionChanged=()=>this.idle.setReducedMotion(!this.idleEnabled||!!this.motionQuery?.matches);
     this.motionQuery?.addEventListener?.('change',this.motionChanged);
     this.motionChanged();
     this.visibilityChanged();
@@ -145,6 +146,7 @@ export class IllustratedAvatar25D{
   }
   setState(state){this.state=state;this.container.dataset.expression=expressionFor(state);this.idle.setState(state);this.setLevel(this.level);}
   notifyActivity(){this.idle.touch();}
+  setIdleEnabled(enabled){this.idleEnabled=enabled!==false;this.motionChanged();}
   setLevel(input){
     this.level=normalizeVoiceEnergy(input);
     const active=this.state==='speaking';
