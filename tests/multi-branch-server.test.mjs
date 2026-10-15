@@ -204,6 +204,26 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:newBasic})).status,200);
     assert.equal((await call('/api/admin/settings?branch=one-branch',{auth:'new-secret-token-12345678901234567890'})).status,200);
     assert.equal((await call('/api/admin/settings?branch=two-branch',{authHeader:newBasic})).status,401);
+    const paygSwitch=await call('/api/admin/branches/subscription',{method:'PUT',auth:token,body:{slug:'two-branch',plan:'payg',status:'active'}});
+    assert.equal(paygSwitch.status,200);
+    assert.equal(paygSwitch.data.subscription.plan,'payg');
+    assert.equal(paygSwitch.data.subscription.status,'out-of-credits');
+    assert.equal((await call('/api/agent/signed-url?branch=two-branch')).status,402);
+    const requestId='81b3d76e-4891-4f90-a60e-09b92871a330';
+    const topup=await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3,requestId}});
+    assert.equal(topup.status,200);
+    assert.equal(topup.data.payg.balance,3);
+    assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3,requestId}})).data.payg.balance,3);
+    assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:4,requestId}})).status,409);
+    assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:token,body:{slug:'two-branch',amount:3}})).status,400);
+    assert.equal((await call('/api/admin/branches/payg',{method:'PUT',auth:key2,body:{slug:'two-branch',amount:100,requestId:'94371b36-24d1-4d7f-a598-eb903d629f02'}})).status,401);
+    assert.equal((await call('/api/admin/payg?branch=one-branch',{authHeader:newBasic})).data.payg.balance,0);
+    assert.equal((await call('/api/admin/payg?branch=two-branch',{auth:key2})).data.payg.balance,3);
+    assert.equal((await call('/api/admin/payg?branch=two-branch',{authHeader:newBasic})).status,401);
+    assert.equal((await call('/api/bootstrap?branch=two-branch')).data.subscription.active,true);
+    assert.equal((await call('/api/agent/signed-url?branch=two-branch')).status,503);
+    assert.equal((await call('/api/admin/payg?branch=two-branch',{auth:key2})).data.payg.balance,3);
+
   }finally{
     child.kill('SIGTERM');
     await new Promise(resolve=>child.exitCode!==null?resolve():child.once('exit',resolve));
