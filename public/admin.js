@@ -173,6 +173,10 @@ async function loadBranches(){
     if(!data.branches.length){
       const p=document.createElement('p');p.textContent='Одоогоор нэмэлт салбар байхгүй.';target.append(p);
     }
+    const paygSelector=$('paygSlug');const paygSelected=paygSelector.value;
+    paygSelector.replaceChildren(new Option('Байгууллага сонгох',''));
+    for(const row of data.branches)paygSelector.add(new Option(row.name+' · '+row.slug,row.slug));
+    if(data.branches.some(row=>row.slug===paygSelected))paygSelector.value=paygSelected;
     const ownerSelect=$('ownerConfigSlug');
     const selectedOwner=ownerSelect.value;
     ownerSelect.replaceChildren(new Option('Салбар сонгох',''));
@@ -203,7 +207,7 @@ async function loadBranches(){
       const admin=document.createElement('a');admin.href='/admin.html?branch='+encodeURIComponent(item.slug);admin.textContent='Админ ↗';admin.target='_blank';admin.rel='noopener';
       const manage=document.createElement('button');
       manage.type='button';manage.className='insights-outline';manage.textContent='Эрх удирдах';
-      manage.onclick=()=>{ $('subscriptionSlug').value=item.slug;$('subscriptionDate').value=item.subscription.expiresAt?.slice(0,10)||'';$('subscriptionPlan').value=item.subscription.plan||'starter';$('subscriptionStatus').value=item.subscription.status==='paused'?'paused':'active';$('subscriptionForm').scrollIntoView({behavior:'smooth',block:'center'}); };
+      manage.onclick=()=>{ $('subscriptionSlug').value=item.slug;$('subscriptionDate').value=item.subscription.expiresAt?.slice(0,10)||'';$('subscriptionPlan').value=item.subscription.plan||'starter';renderSubscriptionPrice();$('subscriptionStatus').value=item.subscription.status==='paused'?'paused':'active';$('subscriptionForm').scrollIntoView({behavior:'smooth',block:'center'}); };
       row.append(text,kiosk,admin,manage);target.append(row);
     }
   }catch(error){show('Салбаруудыг уншиж чадсангүй: '+error.message);}
@@ -275,7 +279,7 @@ $('logoRemove').onclick=()=>{
 $('subscriptionForm').onsubmit=async e=>{
   e.preventDefault();$('subscriptionSave').disabled=true;
   try{
-    const data={slug:$('subscriptionSlug').value,expiresAt:$('subscriptionDate').value||undefined,
+    const data={slug:$('subscriptionSlug').value,expiresAt:$('subscriptionPlan').value==='payg'?undefined:$('subscriptionDate').value||undefined,
       plan:$('subscriptionPlan').value,status:$('subscriptionStatus').value,note:$('subscriptionNote').value};
     const answer=await api('branches/subscription','PUT',data);
     show('Салбарын эрх шинэчлэгдлээ: '+answer.subscription.status);
@@ -520,7 +524,11 @@ $('ownerBranchConfig').onsubmit=async event=>{
 const subscriptionMonthlyPrices={starter:399000,pro:699000,enterprise:1299000};
 function renderSubscriptionPrice(){
  const price=subscriptionMonthlyPrices[$('subscriptionPlan').value];
- $('subscriptionPriceNote').textContent='Сарын багцын жишиг үнэ: '+new Intl.NumberFormat('mn-MN').format(price)+'₮. Төлбөр автоматаар татагдахгүй; эрхийн дуусах огноог админ тохируулна.';
+ $('subscriptionDate').disabled=$('subscriptionPlan').value==='payg';
+ $('subscriptionDate').required=$('subscriptionPlan').value!=='payg';
+ $('subscriptionPriceNote').textContent=$('subscriptionPlan').value==='payg'
+   ?'PAYG · Хугацааны хязгааргүй. Төв админ кредит олгоно. Нэг signed URL олголтод 1 дотоод кредит хасагдана. Бодит provider минутын тариф биш.'
+   :'Сарын багцын жишиг үнэ: '+new Intl.NumberFormat('mn-MN').format(price)+'₮. Төлбөр автоматаар татагдахгүй; эрхийн дуусах огноог админ тохируулна.';
 }
 $('subscriptionPlan').addEventListener('change',renderSubscriptionPrice);
 renderSubscriptionPrice();
@@ -637,3 +645,31 @@ function startElevenLabsCreditsPolling(){
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refreshElevenLabsCredits();});
 }
 $('elevenlabsCreditRefresh').onclick=refreshElevenLabsCredits;
+
+async function refreshPaygBalance(){
+ const slug=$('paygSlug').value;
+ if(!slug){$('paygBalance').textContent='Байгууллага сонгоно уу.';return;}
+ try{
+  const response=await api('payg?slug='+encodeURIComponent(slug));
+  const balance=response.payg;
+  $('paygBalance').textContent='Төлөв: '+(balance.enabled?'PAYG идэвхтэй':'Эхлээд subscription багцыг PAYG болгоно')+
+   ' · Үлдэгдэл: '+balance.balance+' холболтын кредит · Зарцуулсан: '+balance.spent+
+   ' · Нэг signed URL = 1 кредит. Provider ашиглалтын бодит минутын төлбөр биш.';
+ }catch(error){show('PAYG мэдээлэл: '+error.message);}
+}
+$('paygSlug').addEventListener('change',refreshPaygBalance);
+$('paygRefresh').onclick=refreshPaygBalance;
+$('ownerPaygForm').onsubmit=async event=>{
+ event.preventDefault();
+ const button=$('paygTopup');button.disabled=true;
+ try{
+  const slug=$('paygSlug').value;
+  if(!slug)throw Error('Байгууллага сонгоно уу.');
+  const amount=Number($('paygAmount').value);
+  if(!Number.isSafeInteger(amount)||amount<1||amount>100000)throw Error('1–100000 кредит олгоно.');
+  const result=await api('branches/payg','PUT',{slug,amount,note:$('paygNote').value});
+  show(amount+' кредит нэмэгдлээ. Үлдэгдэл: '+result.payg.balance);
+  await refreshPaygBalance();await loadBranches();
+ }catch(error){show('Кредит олголт: '+error.message);}
+ finally{button.disabled=false;}
+};

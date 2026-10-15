@@ -58,11 +58,22 @@
       <div class="grid">
         <label>Салбарын код<input id="subscriptionSlug" required placeholder="branch-code"/></label>
         <label>Дуусах өдөр<input id="subscriptionDate" type="date"/></label>
-        <label>Багц<select id="subscriptionPlan"><option value="starter">Starter · ₮399,000/сар</option><option value="pro">Pro · ₮699,000/сар</option><option value="enterprise">Enterprise · ₮1,299,000/сар</option></select></label>
+        <label>Багц<select id="subscriptionPlan"><option value="starter">Starter · ₮399,000/сар</option><option value="pro">Pro · ₮699,000/сар</option><option value="enterprise">Enterprise · ₮1,299,000/сар</option><option value="payg">PAYG · Кредитээр, хугацаагүй</option></select></label>
         <label>Төлөв<select id="subscriptionStatus"><option value="active">Идэвхжүүлэх / сунгах</option><option value="paused">Түр зогсоох</option></select></label>
       </div>
       <label>Тэмдэглэл<input id="subscriptionNote" maxlength="160" placeholder="Гэрээ, сунгалтын тайлбар"/></label>
       <p id="subscriptionPriceNote" class="device-disclaimer">Сонгосон багцын сарын жишиг үнэ: ₮399,000. Төлбөр автоматаар татагдахгүй; эрхийн хугацааг админ гараар тохируулна.</p><button id="subscriptionSave" type="submit">Эрх хадгалах</button>
+    </form>
+    <form id="ownerPaygForm" class="subscription-panel">
+      <h3>PAYG кредит цэнэглэх</h3>
+      <p>Төв админ байгууллагад урьдчилан холболтын кредит олгоно. <strong>1 кредит = ElevenLabs signed URL нэг удаа олгох эрх.</strong> Энэ нь ElevenLabs-ийн бодит минутын төлбөр, Top Up үлдэгдэл эсвэл автомат QPay төлбөр биш. Кредит хугацаагаар дуусахгүй, 24/7 ашиглаж болно.</p>
+      <div class="grid">
+        <label>Байгууллага<select id="paygSlug" required><option value="">Байгууллага сонгох</option></select></label>
+        <label>Нэмэх кредит<input id="paygAmount" type="number" min="1" max="100000" step="1" value="10" required/></label>
+        <label>Тэмдэглэл<input id="paygNote" maxlength="160" placeholder="Төлбөр баталгаажсан тохиолдолд гараар цэнэглэнэ"/></label>
+      </div>
+      <div class="inline"><button id="paygRefresh" type="button">Үлдэгдэл шалгах</button><button id="paygTopup" type="submit">Кредит олгох</button></div>
+      <p id="paygBalance" role="status">PAYG байгууллага сонгоно уу.</p>
     </form>
   </section>
 </div><div id="currentBranchBanner" class="current-branch-banner"></div><div class="admin-view" data-view="overview"><section id="organizationOperations" class="organization-operations" hidden>
