@@ -6,6 +6,8 @@ import {timingSafeEqual} from 'node:crypto';
 import {createAnalyticsStore,analyticsCSV,metricForAnswer} from './analytics.mjs';
 import {createBranchRegistry} from './branches.mjs';
 import {createDeviceStore} from './devices.mjs';
+import {createAuditStore,organizationReport,slaSnapshot} from './operations.mjs';
+import {createBackupManager} from './backups.mjs';
 import {parseInventorySnapshot,applyInventorySnapshot,buildProviderStatus,shouldEscalateVoiceText} from './phase2.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
@@ -16,9 +18,22 @@ const settingsPath=path.join(dataDir,'settings.json');
 const catalogPath=path.join(dataDir,'catalog.json');
 const analytics=createAnalyticsStore({filePath:path.join(dataDir,'analytics.json')});
 const defaultDevices=createDeviceStore({filePath:path.join(dataDir,'devices.json')});
+const audit=createAuditStore({filePath:path.join(dataDir,'operations-audit.json')});
+const backupManager=createBackupManager({directory:path.join(dataDir,'scheduled-backups'),dataDir});
 const port=Number(process.env.PORT||3000);
 const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:DEMO_CATALOG});
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
+async function automatedSnapshot(){
+  const scrub=ctx=>({
+    settings:{...ctx.settings,agentId:''},catalog:ctx.catalog,
+    analytics:ctx.analytics.report(90),devices:ctx.devices.list()
+  });
+  const branches=registry.list().map(row=>({
+    slug:row.slug,name:row.name,subscription:row.subscription,
+    ...scrub(registry.get(row.slug))
+  }));
+  return backupManager.snapshot({default: scrub(defaultBranch),branches});
+}
 async function loadData(){
   await mkdir(dataDir,{recursive:true});
   try{settings=validateSettings(JSON.parse(await readFile(settingsPath,'utf8')),settings);}catch(e){if(e.code!=='ENOENT')console.warn('Settings not loaded:',e.message);}
@@ -272,6 +287,35 @@ async function handle(req,res){
       if(route==='/api/admin/subscription'){
         if(req.method==='GET')return respond(res,200,{subscription:entitlement,history:hasBranch?registry.history(url.searchParams.get('branch')):[]});
       }
+      if(route==='/api/admin/organization/backups'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        return respond(res,200,{files:await backupManager.list(),location:'local-volume',offsiteReplicated:false,restoreTested:false});
+      }
+      if(route==='/api/admin/organization/backups/file'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        const result=await backupManager.verify(url.searchParams.get('filename'));
+        return respond(res,200,result);
+      }
+      if(route==='/api/admin/organization/backups/create'&&req.method==='POST'){
+        if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ.'});
+        const result=await automatedSnapshot();
+        return respond(res,201,{backup:result,offsiteReplicated:false});
+      }
+      if(route==='/api/admin/organization/report'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Төв админ шаардлагатай.'});
+        const window=[7,30,90].includes(Number(url.searchParams.get('days')))?Number(url.searchParams.get('days')):30;
+        return respond(res,200,organizationReport({days:window,
+          legacy:{name:settings.pharmacyName,analytics,devices:defaultDevices},
+          branches:registry.list().map(row=>({...row,analytics:registry.get(row.slug).analytics,devices:registry.get(row.slug).devices}))}));
+      }
+      if(route==='/api/admin/organization/sla'&&req.method==='GET'){
+        if(hasBranch)return respond(res,403,{error:'Төв админ шаардлагатай.'});
+        return respond(res,200,slaSnapshot({devices:[{slug:'default',store:defaultDevices},...registry.list().map(v=>({slug:v.slug,store:registry.get(v.slug).devices}))]}));
+      }
+      if(route==='/api/admin/audit'&&req.method==='GET'){
+        if(hasBranch)return respond(res,200,{events:audit.list({branch:url.searchParams.get('branch')||''}) .filter(v=>v.branch===url.searchParams.get('branch'))});
+        return respond(res,200,{events:audit.list({limit:200})});
+      }
       if(route==='/api/admin/branches/subscription'){
         if(hasBranch)return respond(res,403,{error:'Зөвхөн төв админ эрх сунгана.'});
         if(req.method==='PUT'){
@@ -280,6 +324,7 @@ async function handle(req,res){
           const result=await registry.grantSubscription(input.slug,{
             status:input.status,expiresAt:input.expiresAt,plan:input.plan,note:input.note
           });
+          await audit.record('subscription.updated',input.slug);
           return respond(res,200,{subscription:result});
         }
       }
@@ -291,6 +336,7 @@ async function handle(req,res){
           if(!input||typeof input!=='object'||Array.isArray(input)||
             Object.keys(input).some(key=>!['slug','name'].includes(key)))return respond(res,400,{error:'Салбарын хүсэлт буруу.'});
           const result=await registry.create(input);
+          await audit.record('branch.created',result.slug);
           return respond(res,201,{branch:result,notice:'Админ токеныг одоо аюулгүй хадгална уу. Дараа дахин харуулахгүй.'});
         }
       }
@@ -318,6 +364,7 @@ async function handle(req,res){
         const snapshot=parseInventorySnapshot(await bodyJson(req,150000));
         const next=applyInventorySnapshot(ctx.catalog,snapshot);
         await ctx.updateCatalog(next);
+        await audit.record('inventory.updated',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{updated:next.filter((item,i)=>item.verified===true&&snapshot.some(row=>row.id===item.id)).length,
           ignoredUnverified:snapshot.filter(row=>ctx.catalog.some(item=>item.id===row.id&&!item.verified)).length,
           mode:'manual-snapshot',livePOSConnected:false});
@@ -327,13 +374,16 @@ async function handle(req,res){
         if(req.method==='POST'){
           const value=await bodyJson(req,300);
           if(!value||typeof value.name!=='string')return respond(res,400,{error:'Device name required'});
-          return respond(res,201,{device:await ctx.devices.enroll(value.name)});
+          const device=await ctx.devices.enroll(value.name);
+          await audit.record('device.enrolled',hasBranch?url.searchParams.get('branch'):'default');
+          return respond(res,201,{device});
         }
       }
       if(route==='/api/admin/devices/revoke'&&req.method==='POST'){
         const value=await bodyJson(req,300);
         if(!value||typeof value.id!=='string')return respond(res,400,{error:'Device ID required'});
         await ctx.devices.revoke(value.id);
+        await audit.record('device.revoked',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{revoked:true});
       }
       if(route==='/api/admin/backup'&&req.method==='GET'){
@@ -346,6 +396,7 @@ async function handle(req,res){
           catalog:ctx.catalog,analytics:ctx.analytics.report(90),
           devices:ctx.devices.list(),subscription:entitlement
         };
+        await audit.record('backup.exported',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{backup:snapshot});
       }
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings:ctx.settings});
@@ -353,11 +404,13 @@ async function handle(req,res){
       if(req.method==='PUT'&&route==='/api/admin/settings'){
         const input=await bodyJson(req,305000);
         const value=await ctx.updateSettings(input);
+        await audit.record('settings.updated',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{settings:value});
       }
       if(req.method==='PUT'&&route==='/api/admin/catalog'){
         const input=await bodyJson(req,1000000);
         const value=await ctx.updateCatalog(input);
+        await audit.record('catalog.updated',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{count:value.length});
       }
       return respond(res,404,{error:'Not found'});
@@ -375,4 +428,8 @@ await loadData();
 await analytics.load();
 await defaultDevices.load();
 await registry.load();
+await audit.load();
+// A local snapshot at boot and every 24h. This does not replace off-site backup.
+try{await automatedSnapshot();}catch(err){console.warn('Local backup unavailable:',err.message);}
+setInterval(()=>automatedSnapshot().catch(err=>console.warn('Local backup failed:',err.message)),86400000).unref();
 http.createServer(handle).listen(port,'0.0.0.0',()=>console.log('RAINY Pharmacy on port '+port));

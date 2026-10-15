@@ -19,7 +19,7 @@ $('login').onclick=async()=>{
     updateLogoPreview();
     $('catalog').value=JSON.stringify(c.items,null,2);
     $('currentBranchBanner').textContent=branchSlug?'🔐 Салбарын тусгаарлагдсан админ: '+branchSlug:'✦ Үндсэн / төв эмийн сангийн админ';
-    if(!branchSlug){$('branchManager').hidden=false;await loadBranches();}
+    if(!branchSlug){$('branchManager').hidden=false;$('organizationOperations').hidden=false;await loadBranches();await refreshOrganization();}
     else $('branchManager').hidden=true;
     $('editor').hidden=false;$('token').value='';show('Амжилттай нэвтэрлээ.');
     await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices(),refreshIntegrations()]);
@@ -325,4 +325,59 @@ $('inventoryImport').onclick=async()=>{
   show(response.updated+' баталгаажсан бүртгэл шинэчлэгдлээ. '+response.ignoredUnverified+' баталгаажаагүй бүртгэлийг алгассан. POS real-time биш.');
   const c=await api('catalog');$('catalog').value=JSON.stringify(c.items,null,2);
  }catch(error){show('POS snapshot алдаа: '+error.message);}
+};
+
+const numOps=value=>new Intl.NumberFormat('mn-MN').format(value||0);
+async function refreshOrganization(){
+ if(branchSlug)return;
+ try{
+  const days=encodeURIComponent($('orgWindow').value);
+  const [report,sla,audit,backup]=await Promise.all([api('organization/report?days='+days),api('organization/sla'),api('audit'),api('organization/backups')]);
+  const counts=$('orgMetrics');counts.replaceChildren();
+  for(const [label,value] of [
+   ['Нийт салбар',report.rows.length],['Нийт асуулт',report.totals.questionsAsked],
+   ['Баталгаажсан хариулт',report.totals.verifiedCatalogAnswers],['Эм зүйчид шилжүүлсэн',report.totals.pharmacistReferrals]
+  ]){
+   const box=document.createElement('div');box.className='ops-stat';
+   const big=document.createElement('strong');big.textContent=numOps(value);
+   const small=document.createElement('span');small.textContent=label;
+   box.append(big,small);counts.append(box);
+  }
+  const table=$('orgRows');table.replaceChildren();
+  for(const item of report.rows){
+   const tr=document.createElement('tr');
+   for(const value of [item.name,item.subscription.status,item.metrics.questionsAsked,item.metrics.verifiedCatalogAnswers,item.metrics.pharmacistReferrals,item.devices.online+'/'+item.devices.total]){
+    const td=document.createElement('td');td.textContent=String(value);tr.append(td);
+   }
+   table.append(tr);
+  }
+  $('slaStatus').textContent='Төхөөрөмж: '+sla.deviceCount+' · Онлайн: '+sla.online+' · Офлайн: '+sla.offline+' · Гэрээний uptime: хэмжигдээгүй';
+  $('backupStatus').textContent='Хадгалсан хуулбар: '+backup.files.length+' · Сүүлийн: '+(backup.files[0]||'Байхгүй')+' · Off-site: үгүй';
+  const download=$('backupDownload');
+  download.hidden=!backup.files.length;
+  download.onclick=async()=>{
+    try{
+      const result=await api('organization/backups/file?filename='+encodeURIComponent(backup.files[0]));
+      const blob=new Blob([JSON.stringify(result.payload,null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob),link=document.createElement('a');
+      link.href=url;link.download=backup.files[0];link.click();
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }catch(err){show('Backup татахад алдаа: '+err.message);}
+  };
+  const log=$('operationsAudit');log.replaceChildren();
+  for(const item of audit.events.slice(0,18)){
+   const div=document.createElement('div');div.className='ops-audit-item';
+   div.textContent=new Date(item.at).toLocaleString('mn-MN')+' · '+item.branch+' · '+item.type;
+   log.append(div);
+  }
+  if(!audit.events.length)log.textContent='Одоогоор аудитын үйлдэл бүртгэгдээгүй байна.';
+ }catch(err){show('Нэгдсэн тайлан: '+err.message);}
+}
+$('orgRefresh').onclick=refreshOrganization;
+$('orgWindow').onchange=refreshOrganization;
+
+$('backupNow').onclick=async()=>{
+ const button=$('backupNow');button.disabled=true;
+ try{const saved=await api('organization/backups/create','POST',{});show('Backup үүслээ: '+saved.backup.filename+' · Энэ нь local volume хуулбар.');await refreshOrganization();}
+ catch(error){show('Backup алдаа: '+error.message);}finally{button.disabled=false;}
 };
