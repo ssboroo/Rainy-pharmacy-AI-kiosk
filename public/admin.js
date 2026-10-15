@@ -22,7 +22,7 @@ $('login').onclick=async()=>{
     if(!branchSlug){$('branchManager').hidden=false;await loadBranches();}
     else $('branchManager').hidden=true;
     $('editor').hidden=false;$('token').value='';show('Амжилттай нэвтэрлээ.');
-    await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices()]);
+    await Promise.all([refreshVoiceStatus(),refreshAnalytics(),refreshDevices(),refreshIntegrations()]);
   }catch(e){token='';show('Нэвтэрч чадсангүй: '+e.message);}
 };
 const avatars=[['nomi','Номи — робот'],['mira','Мира — AI хүн'],['kiki','Кики — робот'],['aria','Ариа — hologram'],['bobo','Бобо — робот']];
@@ -301,4 +301,28 @@ $('backupExport').onclick=async()=>{
   const a=document.createElement('a');a.href=url;a.download='rainy-'+(branchSlug||'default')+'-backup-'+new Date().toISOString().slice(0,10)+'.json';
   a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  }catch(error){show('Backup татаж чадсангүй: '+error.message);}
+};
+
+async function refreshIntegrations(){
+ try{
+  const x=await api('integrations/status');
+  const lines=[
+    ['ElevenLabs Agent',x.services.voice.configured,x.services.voice.clinicalApproved],
+    ['OpenAI зураг танилт',x.services.vision.configured,false],
+    ['Эм зүйчийн webhook',x.services.pharmacist.configured,false],
+    ['POS real-time API',x.services.inventory.livePOSConnected,false]
+  ];
+  $('integrationStatus').textContent=lines.map(([label,configured,approved])=>label+': '+(configured?'Тохируулсан':'Холбогдоогүй')+(label==='ElevenLabs Agent'?' · Клиник зөвшөөрөл: '+(approved?'Тийм':'Үгүй'):'')).join('\n')+'\nLive production шалгалт: үйлчилгээ тус бүрээр баталгаажаагүй';
+ }catch(error){$('integrationStatus').textContent='Оношилгооны алдаа: '+error.message;}
+}
+$('integrationRefresh').onclick=refreshIntegrations;
+$('inventoryImport').onclick=async()=>{
+ try{
+  const data=JSON.parse($('inventorySnapshot').value);
+  if(!Array.isArray(data?.items))throw Error('items массив шаардлагатай.');
+  if(!confirm('Баталгаажсан эмийн үнэ, үлдэгдлийг энэ snapshot-аар шинэчлэх үү?'))return;
+  const response=await api('inventory/snapshot','PUT',data);
+  show(response.updated+' баталгаажсан бүртгэл шинэчлэгдлээ. '+response.ignoredUnverified+' баталгаажаагүй бүртгэлийг алгассан. POS real-time биш.');
+  const c=await api('catalog');$('catalog').value=JSON.stringify(c.items,null,2);
+ }catch(error){show('POS snapshot алдаа: '+error.message);}
 };
