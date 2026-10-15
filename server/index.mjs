@@ -237,7 +237,7 @@ async function handle(req,res){
       return respond(res,403,{error:'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
-      pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
+      pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,idleTimeoutSec:ctx.settings.idleTimeoutSec??120,resetOnDisconnect:ctx.settings.resetOnDisconnect!==false,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
       avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:ctx.catalog.some(v=>!v.verified)
     });
@@ -312,7 +312,15 @@ async function handle(req,res){
         ?String(req.headers.authorization).slice(7):'';
       if(!hasBranch && (!process.env.ADMIN_TOKEN||process.env.ADMIN_TOKEN.length<24))
         return respond(res,503,{error:'ADMIN_TOKEN тохируулаагүй.'});
-      const authorized=hasBranch?registry.authorize(url.searchParams.get('branch'),bearer):isAdmin(req);
+      let branchLoginAuthorized=false;
+      if(hasBranch&&String(req.headers.authorization||'').startsWith('Basic ')){
+        try{
+          const raw=Buffer.from(String(req.headers.authorization).slice(6),'base64').toString('utf8');
+          const separator=raw.indexOf(':');
+          if(separator>0)branchLoginAuthorized=registry.authorizeLogin(url.searchParams.get('branch'),raw.slice(0,separator),raw.slice(separator+1));
+        }catch{}
+      }
+      const authorized=hasBranch?(registry.authorize(url.searchParams.get('branch'),bearer)||branchLoginAuthorized):isAdmin(req);
       if(!authorized)return respond(res,401,{error:'Зөвшөөрөлгүй.'});
       if(route==='/api/admin/subscription'){
         if(req.method==='GET')return respond(res,200,{subscription:entitlement,history:hasBranch?registry.history(url.searchParams.get('branch')):[]});
@@ -376,7 +384,7 @@ async function handle(req,res){
         if(req.method==='POST'){
           const input=await bodyJson(req,1500);
           if(!input||typeof input!=='object'||Array.isArray(input)||
-            Object.keys(input).some(key=>!['slug','name'].includes(key)))return respond(res,400,{error:'Салбарын хүсэлт буруу.'});
+            Object.keys(input).some(key=>!['slug','name','loginName'].includes(key)))return respond(res,400,{error:'Салбарын хүсэлт буруу.'});
           const result=await registry.create(input);
           await audit.record('branch.created',result.slug);
           return respond(res,201,{branch:result,notice:'Админ токеныг одоо аюулгүй хадгална уу. Дараа дахин харуулахгүй.'});
