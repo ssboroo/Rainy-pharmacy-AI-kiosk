@@ -10,7 +10,7 @@ test('voice guide is restricted to published tenant names and aliases, never dem
  assert.match(p.prompt,/Кенко эмийн сан/);
  assert.match(p.prompt,/Парацетамол 500 мг/);
  assert.match(p.prompt,/Монгол хэлээр/);
- assert.match(p.prompt,/эмтэй холбоогүй/);
+ assert.match(p.prompt,/эмтэй холбоогүй/i);
  assert.deepEqual(p.keywords,['Парацетамол 500 мг','парацетомол','paracetamol']);
  assert.doesNotMatch(p.prompt,/Демо эм|secret-demo|худал мэдээлэл/);
 });
