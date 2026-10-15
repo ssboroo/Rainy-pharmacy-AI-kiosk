@@ -38,7 +38,7 @@
       <div class="content-grid">
         <section class="stage-card">
           <div class="stage-decor decor-1"></div><div class="stage-decor decor-2"></div><div class="stage-top-kicker">✦ ТАНЫ ДИЖИТАЛ ЗӨВЛӨХ</div>
-          <div class="stage-top"><span class="live-status"><span class="pulse-dot"></span><span id="statusLabel">Танд туслахад бэлэн</span></span><div class="stage-actions"><button id="setupMicrophoneBtn" class="setup-mic" type="button">🎙 Микрофон зөвшөөрөх</button><button id="kioskBtn" class="setup-screen" type="button">⛶ Томруулах</button><span class="language-chip">🌐 МОНГОЛ</span></div></div>
+          <div class="stage-top"><span class="live-status"><span class="pulse-dot"></span><span id="statusLabel">Танд туслахад бэлэн</span></span><div class="stage-actions"><button id="setupMicrophoneBtn" class="setup-mic" type="button" hidden aria-hidden="true" tabindex="-1">🎙 Микрофон зөвшөөрөх</button><button id="kioskBtn" class="setup-screen" type="button">⛶ Томруулах</button><span class="language-chip">🌐 МОНГОЛ</span></div></div>
           <div class="stage-persona">
             <img id="branchLogo" class="branch-logo" alt="Эмийн сангийн лого" hidden/>
             <div id="voiceHalo" class="voice-halo"></div>
@@ -57,7 +57,7 @@
             <span class="medicine-live-safety">Тун, жорыг эм зүйчээс лавлана уу.</span>
           </aside>
           <div class="stage-caption"><span id="meterLabel" class="meter-label">Танд туслахад бэлэн</span><div class="name-row"><h2 id="assistantTitle">Номи</h2><span class="verified-icon">✓</span></div><p id="personaSubtitle">Таны найрсаг AI туслах</p><div id="waveform" class="waveform" aria-label="Voice visualization"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-          <div class="stage-controls"><p class="kiosk-wake-callout">“Сайн байна уу?” гэж хэлээрэй</p><p id="micPrivacy" class="mic-privacy">Эхлээд ажилтан микрофоны зөвшөөрлийг идэвхжүүлнэ</p><button id="micBtn" class="mic-action"><span class="mic-icon">🎙</span><span id="micBtnText">Ярилцлага эхлүүлэх</span><span class="action-arrow">↗</span></button><p id="voiceHint" class="voice-hint">Товшоод Монгол хэлээр ярьж эхлээрэй</p><button type="button" id="newVisitorBtn" class="new-visitor-btn" aria-label="Дараагийн үйлчлүүлэгчид шинэ яриа эхлүүлэх">↻ Шинэ үйлчлүүлэгч</button></div>
+          <div class="stage-controls"><p class="kiosk-wake-callout">“Сайн байна уу?” гэж хэлээрэй</p><p id="micPrivacy" class="mic-privacy">Ярианы мэдээллээ бусдад бүү хуваалцаарай</p><button id="micBtn" class="mic-action"><span class="mic-icon">🎙</span><span id="micBtnText">Ярилцлага эхлүүлэх</span><span class="action-arrow">↗</span></button><p id="voiceHint" class="voice-hint">Товшоод Монгол хэлээр ярьж эхлээрэй</p><button type="button" id="newVisitorBtn" class="new-visitor-btn" aria-label="Дараагийн үйлчлүүлэгчид шинэ яриа эхлүүлэх">↻ Шинэ үйлчлүүлэгч</button></div>
           <div id="kioskDock" class="kiosk-dock"><button id="kioskCatalogBtn" type="button">✚ <span>Эмийн мэдээлэл</span></button><button id="kioskCameraBtn" type="button">▣ <span>Эм уншуулах</span></button><button id="kioskStaffBtn" type="button">♡ <span>Эм зүйч дуудах</span></button><button id="kioskExitBtn" type="button" aria-label="Жижиг дэлгэц рүү буцах">↙</button></div>
         </section>
         <div class="right-column">
