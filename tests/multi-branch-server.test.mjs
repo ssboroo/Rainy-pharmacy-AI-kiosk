@@ -137,7 +137,7 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     const reportA=await call('/api/admin/analytics?branch=one-branch&days=7',{auth:key1});
     const reportB=await call('/api/admin/analytics?branch=two-branch&days=7',{auth:key2});
     assert.equal(reportA.data.totals.questionsAsked,1);
-    assert.equal(reportB.data.totals.questionsAsked,0);
+    assert.equal(reportB.data.totals.questionsAsked,1); // unverified product query is counted but never answered as a medicine
     assert.equal(reportA.data.totals.catalogOpened,1);
     assert.equal(reportB.data.totals.catalogOpened,0);
     assert.equal((await call('/api/admin/analytics?branch=two-branch',{auth:key1})).status,401);
