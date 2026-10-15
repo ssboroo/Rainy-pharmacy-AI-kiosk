@@ -51,11 +51,15 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     const ownerCfg=await call('/api/admin/branches/config?slug=one-branch',{auth:token});
     assert.equal(ownerCfg.status,200);
     assert.equal(ownerCfg.data.settings.idleTimeoutSec,120);
+    assert.equal(ownerCfg.data.settings.avatarIdleEnabled,true);
     assert.equal((await call('/api/admin/branches/config?slug=one-branch',{auth:key1})).status,401);
     assert.equal((await call('/api/admin/branches/config?slug=one-branch')).status,401);
-    const savedOwnerCfg=await call('/api/admin/branches/config',{method:'PUT',auth:token,body:{slug:'one-branch',settings:{agentId:'agent_owner_one',idleTimeoutSec:75,resetOnDisconnect:false}}});
+    const savedOwnerCfg=await call('/api/admin/branches/config',{method:'PUT',auth:token,body:{slug:'one-branch',settings:{agentId:'agent_owner_one',idleTimeoutSec:75,resetOnDisconnect:false,avatarIdleEnabled:false}}});
     assert.equal(savedOwnerCfg.status,200);
     assert.equal(savedOwnerCfg.data.settings.agentId,'agent_owner_one');
+    assert.equal(savedOwnerCfg.data.settings.avatarIdleEnabled,false);
+    assert.equal((await call('/api/bootstrap?branch=one-branch')).data.avatarIdleEnabled,false);
+    assert.equal((await call('/api/bootstrap?branch=two-branch')).data.avatarIdleEnabled,true);
     assert.equal((await call('/api/admin/branches/config?slug=two-branch',{auth:token})).data.settings.agentId,'');
     assert.equal((await call('/api/admin/branches/config',{method:'PUT',auth:token,body:{slug:'one-branch',settings:{ELEVENLABS_API_KEY:'secret'}}})).status,400);
 
