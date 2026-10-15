@@ -177,8 +177,8 @@ async function checkAgentConnection(ctx){
 const voiceIssueBudget=createVoiceIssueBudget({limit:6});
 async function signedUrl(ctx,key='default'){
   if(!isKioskOpen())throw Object.assign(Error('Киоск 08:00–22:00 цагт ажиллана.'),{code:403});
-  if(!voiceIssueBudget.take(key))throw Object.assign(Error('Дуут холболтын хамгаалалтын лимит хүрлээ. Түр хүлээгээд дахин оролдоно уу.'),{code:429});
   if(!voiceAllowed(voiceEnvironment(ctx),agentId(ctx)))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
+  if(!voiceIssueBudget.take(key))throw Object.assign(Error('Дуут холболтын лимит хүрлээ. Түр хүлээгээд дахин оролдоно уу.'),{code:429});
   const url='https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id='+encodeURIComponent(agentId(ctx));
   const result=await external(url,{headers:{'xi-api-key':process.env.ELEVENLABS_API_KEY}});
   if(typeof result.signed_url!=='string')throw Object.assign(Error('Signed URL олдсонгүй'),{code:502});
