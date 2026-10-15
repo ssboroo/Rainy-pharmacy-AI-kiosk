@@ -667,7 +667,7 @@ $('ownerPaygForm').onsubmit=async event=>{
   if(!slug)throw Error('Байгууллага сонгоно уу.');
   const amount=Number($('paygAmount').value);
   if(!Number.isSafeInteger(amount)||amount<1||amount>100000)throw Error('1–100000 кредит олгоно.');
-  const result=await api('branches/payg','PUT',{slug,amount,note:$('paygNote').value});
+  const result=await api('branches/payg','PUT',{slug,amount,note:$('paygNote').value,requestId:crypto.randomUUID()});
   show(amount+' кредит нэмэгдлээ. Үлдэгдэл: '+result.payg.balance);
   await refreshPaygBalance();await loadBranches();
  }catch(error){show('Кредит олголт: '+error.message);}
