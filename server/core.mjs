@@ -1,4 +1,5 @@
 import {EXAMPLE_MEDICINES} from './demo-catalog.mjs';
+import {matchMedicineSpoken} from '../src/medicine-panel.js';
 export const AVATARS = [
   {id:'nomi',name:'Номи',style:'Робот',color:'#6bd7bc'},
   {id:'mira',name:'Мира',style:'AI хүн',color:'#a7adf7'},
@@ -37,12 +38,25 @@ export function evaluateQuestion(question,items=DEMO_CATALOG) {
   if(q.length<2) return {kind:'invalid',reply:'Асуултаа арай дэлгэрэнгүй бичнэ үү.',requiresPharmacist:false};
   if(emergency.some(w=>q.includes(w))) return {kind:'emergency',reply:'Яаралтай тусламж шаардсан байж болзошгүй. Ажилтныг даруй дуудаж, Монголд байгаа бол 103 дугаарт залгана уу. AI-аас хариу хүлээн цаг алдаж болохгүй.',requiresPharmacist:true};
   if(clinical.some(w=>q.includes(w))) return {kind:'pharmacist',reply:'Энэ асуултад эм зүйч таны нөхцөл байдлыг шалгаж зөвлөгөө өгөх ёстой. Доорх Эм зүйч дуудах товчийг ашиглана уу.',requiresPharmacist:true};
-  const item=items.find(v=>[v.name,...(v.aliases||[])].some(w=>q.includes(normalizeText(w))));
-  if(!item) return {kind:'unknown',reply:'Одоогийн каталогоос баталгаатай хариу олдсонгүй. Эмийн шошгыг уншуулах эсвэл эм зүйчээс лавлана уу.',requiresPharmacist:true};
+  const matched=matchMedicineSpoken(q,items);
+  const item=matched.item;
+  if(!item)return {kind:'unknown',reply:matched.ambiguous
+    ?'Уучлаарай, эмийн нэр ойролцоо сонсогдлоо. Эмийн нэрийг дахин тодорхой хэлэх эсвэл дэлгэц дээр бичиж өгнө үү.'
+    :'Би зөвхөн манай эмийн сангийн баталгаажуулсан каталогт байгаа бүтээгдэхүүний талаар мэдээлэл өгдөг. Та эмийн нэрээ дахин хэлэх, бичих эсвэл эм зүйчээс лавлах боломжтой.',requiresPharmacist:true};
   if(!item.verified) return {kind:'demo',medicine:item,reply:item.name+' — туршилтын бүртгэл, эмийн сангийн бодит үнэ, үлдэгдэл, заавар баталгаажаагүй. '+(item.description||'')+' '+(item.warnings?'Анхааруулга: '+item.warnings+' ':'')+'Эм зүйчээс нягтална уу.',requiresPharmacist:true};
-  if(q.includes('үнэ')||q.includes('хэд вэ')) return {kind:'catalog',medicine:item,reply:item.name+': '+(item.priceMnt==null?'үнэ бүртгээгүй.':item.priceMnt.toLocaleString('mn-MN')+' ₮.')+' Шинэчилсэн: '+item.verifiedAt+'.',requiresPharmacist:false};
-  if(q.includes('байгаа')||q.includes('үлдэгдэл')||q.includes('хаана')) return {kind:'catalog',medicine:item,reply:item.name+': '+(item.stock==null?'үлдэгдэл бүртгээгүй.':'үлдэгдэл '+item.stock+' ширхэг.')+(item.shelf?' Байршил: '+item.shelf+'.':'')+' Ажилтнаас нягтална уу.',requiresPharmacist:false};
-  return {kind:'catalog',medicine:item,reply:item.name+' нэртэй бүтээгдэхүүний баталгаажсан каталогийн бүртгэл байна. Эх сурвалж: '+item.sourceUrl+'. Эмчилгээний мэдээллийг эм зүйчээс лавлана уу.',requiresPharmacist:false};
+  const asksPrice=/үнэ|хэдэн төгрөг|хэд вэ|өртөг/.test(q);
+  const asksStock=/байгаа|үлдэгдэл|бэлэн|хаана/.test(q);
+  const wantsBuy=/авъя|авмаар|авч болох|худалдаж|авах|авбал/.test(q);
+  const parts=[];
+  parts.push('Мэдээж, '+item.name+' бүтээгдэхүүний манай эмийн сангийн бүртгэлтэй мэдээллийг үзүүлье.');
+  if(!asksPrice&&!asksStock&&item.description)parts.push(item.description);
+  if(item.form)parts.push('Төрөл: '+item.form+'.');
+  if(asksPrice||wantsBuy)parts.push(item.priceMnt==null?'Үнэ одоогоор бүртгэгдээгүй.':'Үнэ: '+item.priceMnt.toLocaleString('en-US')+' ₮.');
+  if(asksStock||wantsBuy)parts.push(item.stock==null?'Бэлэн байдлыг эм зүйчээс лавлаарай.':item.stock===0?'Одоогоор үлдэгдэл бүртгэлгүй байна.':'Бүртгэлтэй үлдэгдэл: '+item.stock+'.');
+  if(asksStock&&item.shelf)parts.push('Тавиур: '+item.shelf+'.');
+  if(item.warnings&&!asksPrice)parts.push('Анхааруулга: '+item.warnings);
+  parts.push(item.stock===0?'Ойролцоо өөр эмийг дур мэдэн санал болгохгүй. Эм зүйчээс боломжит хувилбарыг лавлаарай.':'Энэ бүтээгдэхүүний зураг, дэлгэрэнгүй мэдээлэл дэлгэц дээр харагдаж байна. Авахыг хүсвэл “Эм зүйчээс лавлах” товчийг дарж болно.');
+  return {kind:'catalog',medicine:item,reply:parts.join(' '),requiresPharmacist:false};
 }
 const txt=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 export function validateSettings(input,prev=DEFAULT_SETTINGS) {
@@ -89,6 +103,10 @@ export function validateCatalog(input){
     if(verified&&(!/^https:\/\//.test(sourceUrl)||!/^\d{4}-\d\d-\d\d/.test(verifiedAt)))throw Error(v.name+': баталгаажуулах эх сурвалж, огноо шаардлагатай.');
     if(v.priceMnt!=null&&(!Number.isInteger(v.priceMnt)||v.priceMnt<0))throw Error('Үнэ буруу.');
     if(v.stock!=null&&(!Number.isInteger(v.stock)||v.stock<0))throw Error('Үлдэгдэл буруу.');
-    return {id,name:txt(v.name,120),aliases:Array.isArray(v.aliases)?v.aliases.filter(x=>typeof x==='string').slice(0,8).map(x=>txt(x,80)):[],category:txt(v.category,80),form:txt(v.form,120),priceMnt:v.priceMnt??null,stock:v.stock??null,shelf:txt(v.shelf,80),notes:txt(v.notes,350),description:txt(v.description,550),warnings:txt(v.warnings,550),storage:txt(v.storage,380),verified,sourceUrl,verifiedAt};
+    const imageUrl=txt(v.imageUrl,750);
+    if(v.imageUrl!==undefined&&v.imageUrl!==null&&v.imageUrl!=='' &&
+      (typeof v.imageUrl!=='string'||v.imageUrl.length>750||!/^https:\/\/[^\s<>"']+$/i.test(v.imageUrl)))
+      throw Error('Эмийн зураг зөвхөн HTTPS URL байна.');
+    return {id,name:txt(v.name,120),aliases:Array.isArray(v.aliases)?v.aliases.filter(x=>typeof x==='string').slice(0,8).map(x=>txt(x,80)):[],category:txt(v.category,80),form:txt(v.form,120),priceMnt:v.priceMnt??null,stock:v.stock??null,shelf:txt(v.shelf,80),imageUrl,notes:txt(v.notes,350),description:txt(v.description,550),warnings:txt(v.warnings,550),storage:txt(v.storage,380),verified,sourceUrl,verifiedAt};
   });
 }
