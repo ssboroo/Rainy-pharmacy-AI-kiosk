@@ -176,6 +176,11 @@ async function loadBranches(){
     const selectedOwner=ownerSelect.value;
     ownerSelect.replaceChildren(new Option('Салбар сонгох',''));
     for(const row of data.branches)ownerSelect.add(new Option(row.name+' · '+row.slug,row.slug));
+    const catalogSelect=$('ownerCatalogSlug');
+    const oldCatalog=catalogSelect.value;
+    catalogSelect.replaceChildren(new Option('Байгууллага сонгох',''));
+    for(const row of data.branches)catalogSelect.add(new Option(row.name+' · '+row.slug,row.slug));
+    if(data.branches.some(row=>row.slug===oldCatalog))catalogSelect.value=oldCatalog;
     if(data.branches.some(row=>row.slug===selectedOwner))ownerSelect.value=selectedOwner;
     for(const item of data.branches){
       const row=document.createElement('div');row.className='branch-list-item';
@@ -502,4 +507,52 @@ $('ownerBranchConfig').onsubmit=async event=>{
  };
  try{await api('branches/config','PUT',{slug,settings});show('Байгууллагын AI тохиргоо хадгалагдлаа. Киоск дахин ачаалахад хэрэгжинэ.');}
  catch(error){show('Байгууллагын тохиргооны алдаа: '+error.message);}
+};
+
+const catalogCsvHeaders=['id','name','aliases','category','form','description','warnings','storage','notes','shelf','priceMnt','stock','verified'];
+const templateCsv='\uFEFF'+catalogCsvHeaders.join(',')+'\r\n'+
+  'example-id,Жишээ эм,,Ангилал,Таблет,Зөвхөн баталгаажсан тайлбар,Эм зүйчтэй зөвлөнө,Хуурай орчинд,,,,0,false\r\n';
+function downloadCatalogTemplate(){
+ const blob=new Blob([templateCsv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob);const a=document.createElement('a');
+ a.href=url;a.download='rainy-pharmacy-catalog-template.csv';a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$('catalogCsvTemplate').onclick=downloadCatalogTemplate;
+$('ownerCatalogTemplate').onclick=downloadCatalogTemplate;
+$('ownerCatalogLoad').onclick=async()=>{
+ const slug=$('ownerCatalogSlug').value;
+ if(!slug){show('Байгууллага сонгоно уу.');return;}
+ try{
+  const result=await api('branches/catalog?slug='+encodeURIComponent(slug));
+  $('ownerCatalogJSON').value=JSON.stringify(result.items,null,2);
+  $('ownerCatalogJSON').dataset.loadedSlug=slug;
+  show(result.items.length+' эмийн мэдээлэл уншлаа.');
+ }catch(e){show('Каталог унших алдаа: '+e.message);}
+};
+$('ownerCatalogSlug').onchange=()=>{
+ $('ownerCatalogJSON').value='';
+ $('ownerCatalogJSON').dataset.loadedSlug='';
+};
+$('ownerCatalogCsvImport').onclick=async()=>{
+ const file=$('ownerCatalogCsvFile').files?.[0];
+ if(!file){show('CSV файлаа сонгоно уу.');return;}
+ if(file.size>1000000){show('CSV 1MB-аас бага байна.');return;}
+ try{
+  const parsed=parseCatalogCSV(await file.text());
+  $('ownerCatalogJSON').value=JSON.stringify(parsed,null,2);
+  $('ownerCatalogJSON').dataset.loadedSlug=$('ownerCatalogSlug').value;
+  show(parsed.length+' эмийн мэдээлэл шалгахад бэлэн. Хадгалах товч дарахаас өмнө нягтална уу.');
+ }catch(e){show('CSV формат буруу: '+e.message);}
+};
+$('ownerCatalogSave').onclick=async()=>{
+ const slug=$('ownerCatalogSlug').value;
+ if(!slug||$('ownerCatalogJSON').dataset.loadedSlug!==slug){show('Тухайн байгууллагын каталогийг эхлээд уншина уу.');return;}
+ try{
+  const items=JSON.parse($('ownerCatalogJSON').value);
+  if(!Array.isArray(items))throw Error('Каталог массив байна.');
+  if(!confirm(slug+' байгууллагын каталогийг '+items.length+' эмээр СОЛИХ уу?'))return;
+  const result=await api('branches/catalog','PUT',{slug,items});
+  show(result.count+' эмийн мэдээлэл зөвхөн '+slug+' байгууллагад хадгалагдлаа.');
+ }catch(e){show('Каталог хадгалах алдаа: '+e.message);}
 };
