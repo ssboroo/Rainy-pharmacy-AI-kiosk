@@ -227,3 +227,85 @@
   body:not(.immersive-kiosk) .nav-item{min-height:56px!important}
   body:not(.immersive-kiosk) .nav-text{font-size:9px!important}
 }
+
+
+/* PORTRAIT V2 — last-resort visibility contract.
+   Never turn the landscape kiosk into a two-column or fixed-height cropped page.
+   Works on real 1080x1920, 720x1280, 600x1067 and mobile portrait. */
+@media (orientation: portrait) {
+  :root,html,body{min-width:0!important;width:100%!important;height:auto!important;overflow-x:clip!important;overflow-y:auto!important}
+  body:not(.immersive-kiosk){height:auto!important;overflow-y:auto!important}
+  body:not(.immersive-kiosk) .app-shell{
+    display:block!important;position:relative!important;width:100%!important;min-width:0!important;
+    height:auto!important;min-height:100dvh!important;max-height:none!important;overflow:visible!important;
+  }
+  body:not(.immersive-kiosk) .sidebar{
+    position:relative!important;top:auto!important;left:auto!important;right:auto!important;
+    display:block!important;float:none!important;transform:none!important;
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    overflow:visible!important;padding:10px 14px 12px!important;
+    margin:0!important;box-sizing:border-box!important;z-index:1!important;
+  }
+  body:not(.immersive-kiosk) .sidebar-nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+  body:not(.immersive-kiosk) .nav-item{min-width:0!important;max-width:100%!important;white-space:normal!important}
+  body:not(.immersive-kiosk) .main-area{
+    display:block!important;position:relative!important;float:none!important;transform:none!important;
+    flex:none!important;width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;
+  }
+  body:not(.immersive-kiosk) .topbar{position:relative!important;height:auto!important;min-height:48px!important;width:100%!important}
+  body:not(.immersive-kiosk) .main-inner{
+    display:flex!important;flex-direction:column!important;flex:none!important;
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    margin:0 auto!important;padding:12px clamp(10px,2vw,22px) 28px!important;
+    overflow:visible!important;transform:none!important;gap:12px!important;
+  }
+  body:not(.immersive-kiosk) .section-title,
+  body:not(.immersive-kiosk) .demo-banner,
+  body:not(.immersive-kiosk) .avatar-section,
+  body:not(.immersive-kiosk) .content-grid,
+  body:not(.immersive-kiosk) .legal-foot{position:relative!important;flex:none!important;width:100%!important;min-width:0!important;max-width:100%!important}
+  body:not(.immersive-kiosk) .content-grid{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    overflow:visible!important;gap:14px!important;align-items:start!important;
+  }
+  body:not(.immersive-kiosk) .stage-card{
+    display:flex!important;flex-direction:column!important;
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:550px!important;max-height:none!important;
+    flex:none!important;overflow:hidden!important;position:relative!important;
+  }
+  body:not(.immersive-kiosk) .stage-persona{
+    flex:1 0 300px!important;min-height:300px!important;height:300px!important;
+    max-height:none!important;overflow:hidden!important;position:relative!important;
+  }
+  body:not(.immersive-kiosk) .stage-persona #avatar25{position:absolute!important;inset:0!important;display:flex!important;visibility:visible!important}
+  body:not(.immersive-kiosk) .stage-persona #avatar25 .rainy-2d5-portrait{width:100%!important;height:100%!important;object-fit:contain!important}
+  body:not(.immersive-kiosk) .right-column{
+    display:flex!important;flex-direction:column!important;position:relative!important;
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    overflow:visible!important;gap:13px!important;
+  }
+  body:not(.immersive-kiosk) .quick-title,
+  body:not(.immersive-kiosk) .action-grid,
+  body:not(.immersive-kiosk) .chat-panel{width:100%!important;min-width:0!important;flex:none!important;visibility:visible!important}
+  body:not(.immersive-kiosk) .action-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body:not(.immersive-kiosk) .chat-panel{
+    display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;
+    height:340px!important;min-height:260px!important;max-height:none!important;overflow:hidden!important;
+  }
+  body:not(.immersive-kiosk) .chat-messages{min-height:0!important;overflow:auto!important}
+  body:not(.immersive-kiosk) .legal-foot{display:block!important;visibility:visible!important;white-space:normal!important;padding-bottom:24px!important}
+}
+/* Very narrow portrait: stack card choices without horizontal clipping. */
+@media (orientation:portrait) and (max-width:430px){
+ body:not(.immersive-kiosk) .brand-mark{gap:7px!important}
+ body:not(.immersive-kiosk) .avatar-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ body:not(.immersive-kiosk) .stage-persona{min-height:235px!important;height:235px!important;flex-basis:235px!important}
+ body:not(.immersive-kiosk) .stage-card{min-height:485px!important}
+ body:not(.immersive-kiosk) .action-card{min-height:85px!important}
+}
