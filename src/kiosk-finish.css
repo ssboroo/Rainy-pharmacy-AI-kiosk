@@ -1,0 +1,134 @@
+/* Canonical patient-facing layout. Loaded last after historical styles.
+   No deceptive cropping: the real SVG character, controls and legal text fit at
+   common kiosk resolutions; short/portrait screens scroll safely. */
+.stage-persona #avatar25{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  min-height:0;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#avatar25 .rainy-2d5-portrait{
+  width:100%;
+  height:100%;
+  max-width:min(100%,660px);
+  max-height:100%;
+  object-fit:contain;
+  transform:none!important;
+  overflow:visible;
+  filter:drop-shadow(0 9px 18px rgba(20,75,69,.14));
+}
+.stage-persona.avatar-25d-ready #avatarMount{visibility:hidden}
+.stage-persona{position:relative;overflow:hidden}
+.stage-card{isolation:isolate}
+
+/* Fix old overflow/min-height rules overriding responsive layout. */
+@media(min-width:1101px) and (min-height:740px){
+ html,body{height:100%;overflow:hidden}
+ body:not(.immersive-kiosk) .app-shell{
+   height:100dvh;min-height:0;overflow:hidden;
+ }
+ body:not(.immersive-kiosk) .main-area{
+   display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden;
+ }
+ body:not(.immersive-kiosk) .topbar{height:62px;min-height:62px;flex:0 0 62px}
+ body:not(.immersive-kiosk) .main-inner{
+   display:flex!important;flex-direction:column!important;
+   flex:1 1 auto;
+   width:100%;max-width:1570px;height:auto!important;min-height:0!important;
+   padding:13px 2.6% 8px!important;gap:8px;
+   overflow:hidden!important;
+ }
+ body:not(.immersive-kiosk) .section-title,
+ body:not(.immersive-kiosk) .avatar-section,
+ body:not(.immersive-kiosk) .demo-banner,
+ body:not(.immersive-kiosk) .legal-foot{flex:0 0 auto;min-height:0}
+ body:not(.immersive-kiosk) .section-title{margin:0}
+ body:not(.immersive-kiosk) .section-title h1{font-size:clamp(26px,2.3vw,37px);line-height:1.06}
+ body:not(.immersive-kiosk) .section-title .micro-label{margin:0 0 4px}
+ body:not(.immersive-kiosk) .section-subtitle{margin:5px 0 0;font-size:11px}
+ body:not(.immersive-kiosk) .demo-banner{margin:0;padding:6px 10px;font-size:10px}
+ body:not(.immersive-kiosk) .avatar-section{height:58px!important;min-height:58px!important;margin:0!important;padding:6px 10px!important}
+ body:not(.immersive-kiosk) .avatar-option{min-height:44px!important;height:44px!important;max-height:44px}
+ body:not(.immersive-kiosk) .avatar-thumbnail{height:34px!important;width:34px!important;flex-basis:34px!important}
+ body:not(.immersive-kiosk) .content-grid{
+   display:grid!important;
+   flex:1 1 0!important;
+   grid-template-columns:minmax(0,1.03fr) minmax(0,.97fr);
+   align-items:stretch;gap:14px;
+   min-height:0!important;height:auto!important;
+   overflow:hidden!important;
+ }
+ body:not(.immersive-kiosk) .stage-card{
+   display:flex!important;flex-direction:column!important;
+   height:100%;min-height:0!important;max-height:100%;overflow:hidden;
+   padding:12px 15px!important;
+ }
+ body:not(.immersive-kiosk) .stage-top{flex:0 0 auto}
+ body:not(.immersive-kiosk) .stage-top-kicker{display:none}
+ body:not(.immersive-kiosk) .stage-persona{
+   display:flex;flex:1 1 0!important;min-height:0!important;
+   max-height:none;position:relative;overflow:hidden;
+ }
+ body:not(.immersive-kiosk) .stage-caption{flex:0 0 auto;position:relative;z-index:3}
+ body:not(.immersive-kiosk) .stage-controls{flex:0 0 auto;position:relative;z-index:3;padding:2px 0 0}
+ body:not(.immersive-kiosk) .stage-caption .name-row h2{font-size:22px}
+ body:not(.immersive-kiosk) .stage-caption .meter-label{font-size:9px}
+ body:not(.immersive-kiosk) .stage-caption #personaSubtitle{font-size:10px}
+ body:not(.immersive-kiosk) .waveform{height:27px!important;min-height:27px!important}
+ body:not(.immersive-kiosk) .kiosk-wake-callout{font-size:15px;margin:0}
+ body:not(.immersive-kiosk) .mic-privacy{font-size:9px;margin:2px auto 4px}
+ body:not(.immersive-kiosk) .mic-action{min-height:46px!important;padding:8px 13px;border-radius:13px}
+ body:not(.immersive-kiosk) .voice-hint{font-size:9px;margin:3px 0 0}
+ body:not(.immersive-kiosk) .right-column{
+   display:grid!important;grid-template-rows:auto auto minmax(0,1fr);
+   height:100%;min-height:0!important;max-height:100%;gap:8px;
+   overflow:hidden!important;
+ }
+ body:not(.immersive-kiosk) .quick-title{padding:0;margin:0}
+ body:not(.immersive-kiosk) .quick-title h2{font-size:19px;margin:0}
+ body:not(.immersive-kiosk) .quick-title .micro-label{margin:0 0 4px}
+ body:not(.immersive-kiosk) .action-grid{gap:8px}
+ body:not(.immersive-kiosk) .action-card{min-height:69px;padding:10px 12px;border-radius:13px}
+ body:not(.immersive-kiosk) .action-card strong{font-size:12px}
+ body:not(.immersive-kiosk) .action-card small{font-size:10px}
+ body:not(.immersive-kiosk) .chat-panel{
+   min-height:0!important;max-height:100%;
+   display:grid!important;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;
+ }
+ body:not(.immersive-kiosk) .chat-header{padding:11px 13px}
+ body:not(.immersive-kiosk) .chat-messages{min-height:0;overflow-y:auto}
+ body:not(.immersive-kiosk) .chat-input-row{padding:8px}
+ body:not(.immersive-kiosk) .legal-foot{margin:0;padding:4px 0!important;font-size:9px;line-height:1.4}
+}
+/* At short heights no essential content may be unreachable. The viewport
+   invariant is deliberately relaxed instead of hiding safety warnings. */
+@media(max-height:739px){
+ body:not(.immersive-kiosk){overflow:auto!important}
+ body:not(.immersive-kiosk) .app-shell{height:auto!important;min-height:100dvh!important;overflow:visible!important}
+ body:not(.immersive-kiosk) .main-area{height:auto!important;overflow:visible!important}
+ body:not(.immersive-kiosk) .main-inner{height:auto!important;min-height:0!important;overflow-y:visible!important}
+ body:not(.immersive-kiosk) .content-grid{height:auto!important;min-height:0!important;overflow:visible!important}
+ body:not(.immersive-kiosk) .stage-card{min-height:560px!important}
+ body:not(.immersive-kiosk) .stage-persona{min-height:285px!important}
+ body:not(.immersive-kiosk) .legal-foot{padding-bottom:16px}
+}
+@media(max-width:1100px){
+ body:not(.immersive-kiosk) .main-inner{height:auto!important;overflow:visible!important}
+ body:not(.immersive-kiosk) .content-grid{height:auto!important;overflow:visible!important}
+ body:not(.immersive-kiosk) .stage-card{min-height:560px!important}
+ body:not(.immersive-kiosk) .stage-persona{min-height:285px!important}
+ body:not(.immersive-kiosk) .right-column{overflow:visible!important}
+}
+@media(max-width:680px){
+ body:not(.immersive-kiosk) .stage-card{min-height:540px!important}
+ body:not(.immersive-kiosk) .stage-persona{min-height:265px!important}
+ body:not(.immersive-kiosk) .legal-foot{padding-bottom:95px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #avatar25 .rainy-2d5-portrait{transform:none!important}
+}
