@@ -24,6 +24,23 @@ async function atomicWrite(file,data){
 }
 const safeHash=(token,salt)=>createHmac('sha256',salt).update(token,'utf8').digest('hex');
 
+const parseEndDate=value=>{
+  if(typeof value!=='string'||!(/^\d{4}-\d{2}-\d{2}$/).test(value)||
+     new Date(value+'T12:00:00Z').toISOString().slice(0,10)!==value)
+    throw Object.assign(Error('Subscription огноо YYYY-MM-DD форматтай, хүчинтэй огноо байна.'),{code:400});
+  return value+'T23:59:59.999Z';
+};
+export function subscriptionState(subscription,now=new Date()){
+  const record=subscription&&typeof subscription==='object'?subscription:{};
+  const status=record.status==='active'||record.status==='paused'?record.status:'pending';
+  const expiresAt=typeof record.expiresAt==='string'?record.expiresAt:null;
+  const active=status==='active'&&!!expiresAt&&Number.isFinite(Date.parse(expiresAt))&&Date.parse(expiresAt)>now.getTime();
+  return {status:active?'active':status==='paused'?'paused':status==='pending'?'pending':'expired',active,
+    expiresAt,plan:typeof record.plan==='string'?record.plan:'starter',
+    daysLeft:active?Math.max(0,Math.ceil((Date.parse(expiresAt)-now.getTime())/86400000)):0};
+}
+
+
 export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,defaultCatalog=DEMO_CATALOG}){
   if(!dataDir)throw Error('DATA_DIR required.');
   const root=resolve(dataDir),registryFile=join(root,'branches-registry.json');
@@ -104,8 +121,41 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     const expected=Buffer.from(row.hash,'hex');
     return timingSafeEqual(candidate,expected);
   }
-  function list(){
-    return [...registry.values()].map(({slug,name,createdAt})=>({slug,name,createdAt}));
+  function list(){return [...registry.values()].map(({slug,name,createdAt,subscription})=>({slug,name,createdAt,subscription:subscriptionState(subscription)}));}
+  function subscription(slug,now=new Date()){
+    const row=registry.get(validateBranchSlug(slug));
+    if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
+    return subscriptionState(row.subscription,now);
+  }
+  function history(slug){
+    const row=registry.get(validateBranchSlug(slug));
+    if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
+    return Array.isArray(row.subscriptionHistory)?row.subscriptionHistory.map(x=>({...x})):[];
+  }
+  async function grantSubscription(slug,input,at=new Date().toISOString()){
+    validateBranchSlug(slug);
+    if(!input||typeof input!=='object'||Array.isArray(input))throw Object.assign(Error('Эрхийн хүсэлт буруу.'),{code:400});
+    if(input.status!=null&&!['active','paused'].includes(input.status))throw Object.assign(Error('Эрхийн төлөв буруу.'),{code:400});
+    if(input.plan!=null&&!['starter','pro','enterprise'].includes(input.plan))throw Object.assign(Error('Багц буруу.'),{code:400});
+    if(input.note!=null&&(typeof input.note!=='string'||input.note.length>160))throw Object.assign(Error('Тэмдэглэл хэт урт.'),{code:400});
+    const expiresAt=input.expiresAt!=null?parseEndDate(input.expiresAt):null;
+    const work=writes.catch(()=>{}).then(async()=>{
+      const row=registry.get(slug);
+      if(!row)throw Object.assign(Error('Салбар олдсонгүй.'),{code:404});
+      const old=row.subscription||{status:'pending',expiresAt:null,plan:'starter'};
+      const next={status:input.status||'active',plan:input.plan||old.plan||'starter',
+        expiresAt:expiresAt||old.expiresAt||null,updatedAt:at};
+      if(next.status==='active'&&!next.expiresAt)throw Object.assign(Error('Эрхийн дуусах огноо шаардлагатай.'),{code:400});
+      const event={at,action:next.status==='paused'?'paused':'granted',status:next.status,
+        plan:next.plan,expiresAt:next.expiresAt,note:typeof input.note==='string'?input.note.trim():''};
+      const replacement={...row,subscription:next,subscriptionHistory:[...(row.subscriptionHistory||[]),event].slice(-150)};
+      const all=[...registry.values()].map(v=>v.slug===slug?replacement:v);
+      await atomicWrite(registryFile,{version:1,branches:all});
+      registry.set(slug,replacement);
+      return subscriptionState(next,new Date(at));
+    });
+    writes=work.then(()=>{},()=>{});
+    return work;
   }
   async function create({slug,name}){
     if(!loaded)throw Error('Branch registry not loaded.');
@@ -126,10 +176,10 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
       await atomicWrite(registryFile,{version:1,branches:next});
       registry.set(slug,row);
       instances.set(slug,await loadInstance(row));
-      return {slug,name:row.name,createdAt:row.createdAt,adminToken:token};
+      return {slug,name:row.name,createdAt:row.createdAt,adminToken:token,subscription:subscriptionState(row.subscription)};
     });
     writes=work.then(()=>{},()=>{});
     return work;
   }
-  return {load,get,list,create,authorize};
+  return {load,get,list,create,authorize,subscription,history,grantSubscription};
 }
