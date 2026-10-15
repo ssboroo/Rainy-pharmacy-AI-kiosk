@@ -23,6 +23,7 @@ $('login').onclick=async()=>{
     for(const key of ['pharmacyName','assistantName','greeting','locationName','agentId','defaultAvatar','accent']) if($(key))$(key).value=config[key];
     $('idleTimeoutSec').value=config.idleTimeoutSec??120;
     $('resetOnDisconnect').checked=config.resetOnDisconnect!==false;
+    $('avatarIdleEnabled').checked=config.avatarIdleEnabled!==false;
     $('integrationAgentId').value=config.agentId||'';
     logoData=config.logoData||'';
     updateLogoPreview();
@@ -40,6 +41,7 @@ $('saveSettings').onclick=async()=>{
   const data={};for(const key of ['pharmacyName','assistantName','greeting','locationName','agentId','defaultAvatar','accent'])data[key]=$(key).value;
   data.idleTimeoutSec=Number($('idleTimeoutSec').value);
   data.resetOnDisconnect=$('resetOnDisconnect').checked;
+  data.avatarIdleEnabled=$('avatarIdleEnabled').checked;
   data.logoData=logoData;
   try{await api('settings','PUT',data);show('Тохиргоо хадгалагдлаа. Киоск хуудсыг шинэчлэхэд хэрэгжинэ.');await refreshVoiceStatus();}catch(e){show('Хадгалж чадсангүй: '+e.message);}
 };
@@ -480,6 +482,7 @@ async function loadOwnerBranchConfig(){
   $('ownerConfigAgent').value=settings.agentId||'';
   $('ownerConfigIdle').value=settings.idleTimeoutSec??120;
   $('ownerConfigDisconnect').checked=settings.resetOnDisconnect!==false;
+  $('ownerConfigAvatarIdle').checked=settings.avatarIdleEnabled!==false;
   show('Байгууллагын тохиргоог уншлаа.');
  }catch(error){show('Тохиргоо унших алдаа: '+error.message);}
 }
@@ -494,7 +497,8 @@ $('ownerBranchConfig').onsubmit=async event=>{
   assistantName:$('ownerConfigAssistant').value.trim(),
   agentId:$('ownerConfigAgent').value.trim(),
   idleTimeoutSec:Number($('ownerConfigIdle').value),
-  resetOnDisconnect:$('ownerConfigDisconnect').checked
+  resetOnDisconnect:$('ownerConfigDisconnect').checked,
+  avatarIdleEnabled:$('ownerConfigAvatarIdle').checked
  };
  try{await api('branches/config','PUT',{slug,settings});show('Байгууллагын AI тохиргоо хадгалагдлаа. Киоск дахин ачаалахад хэрэгжинэ.');}
  catch(error){show('Байгууллагын тохиргооны алдаа: '+error.message);}

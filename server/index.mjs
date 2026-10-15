@@ -237,7 +237,7 @@ async function handle(req,res){
       return respond(res,403,{error:'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
-      pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,idleTimeoutSec:ctx.settings.idleTimeoutSec??120,resetOnDisconnect:ctx.settings.resetOnDisconnect!==false,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
+      pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,idleTimeoutSec:ctx.settings.idleTimeoutSec??120,resetOnDisconnect:ctx.settings.resetOnDisconnect!==false,avatarIdleEnabled:ctx.settings.avatarIdleEnabled!==false,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
       avatars:AVATARS,voiceReady:voiceAllowed(voiceEnvironment(ctx),agentId(ctx)),voiceConfigured:!!(process.env.ELEVENLABS_API_KEY&&agentId(ctx)),visionReady:!!process.env.OPENAI_API_KEY,staffReady:!!process.env.PHARMACIST_WEBHOOK_URL,
       demoMode:ctx.catalog.some(v=>!v.verified)
     });
@@ -388,13 +388,13 @@ async function handle(req,res){
           return respond(res,200,{slug,settings:{
             pharmacyName:branch.settings.pharmacyName,assistantName:branch.settings.assistantName,
             agentId:branch.settings.agentId,idleTimeoutSec:branch.settings.idleTimeoutSec??120,
-            resetOnDisconnect:branch.settings.resetOnDisconnect!==false
+            resetOnDisconnect:branch.settings.resetOnDisconnect!==false,avatarIdleEnabled:branch.settings.avatarIdleEnabled!==false
           }});
         }
         if(req.method==='PUT'){
           const input=await bodyJson(req,2400);
           if(!input||typeof input.slug!=='string'||!input.settings||typeof input.settings!=='object'||
-             Array.isArray(input.settings)||Object.keys(input.settings).some(k=>!['pharmacyName','assistantName','agentId','idleTimeoutSec','resetOnDisconnect'].includes(k)))
+             Array.isArray(input.settings)||Object.keys(input.settings).some(k=>!['pharmacyName','assistantName','agentId','idleTimeoutSec','resetOnDisconnect','avatarIdleEnabled'].includes(k)))
             return respond(res,400,{error:'Байгууллагын тохиргоо буруу.'});
           const branch=registry.get(input.slug);
           const settings=await branch.updateSettings(input.settings);
@@ -402,7 +402,7 @@ async function handle(req,res){
           return respond(res,200,{slug:input.slug,settings:{
             pharmacyName:settings.pharmacyName,assistantName:settings.assistantName,
             agentId:settings.agentId,idleTimeoutSec:settings.idleTimeoutSec??120,
-            resetOnDisconnect:settings.resetOnDisconnect!==false
+            resetOnDisconnect:settings.resetOnDisconnect!==false,avatarIdleEnabled:settings.avatarIdleEnabled!==false
           }});
         }
       }

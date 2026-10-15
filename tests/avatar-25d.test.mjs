@@ -50,3 +50,15 @@ test('each head has a recognizable, unique accessory or silhouette',()=>{
   const distinct={nomi:/avatar25-antenna/,mira:/avatar25-human-hair/,kiki:/avatar25-fox-ears/,aria:/avatar25-hologram-halo/,bobo:/avatar25-bunny-ears/};
   for(const [id,signature] of Object.entries(distinct))assert.match(avatarMarkup(id),signature);
 });
+
+test('each live character has dedicated decorative waiting face and stretch targets',()=>{
+ for(const id of Object.keys(AVATAR_STYLES)){
+  const svg=avatarMarkup(id,'living-test');
+  assert.match(svg,/avatar25-idle-yawn-mouth/);
+  assert.match(svg,/avatar25-idle-arms/);
+  assert.match(svg,/avatar25-idle-arm-left/);
+  assert.match(svg,/avatar25-idle-arm-right/);
+  assert.match(svg,/avatar25-eyelid/);
+  assert.doesNotMatch(svg,/onmouseover|onerror|<script/);
+ }
+});

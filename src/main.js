@@ -62,6 +62,7 @@ async function resetVisitorSession(){
 }
 function activity(){
   if(resettingVisitor)return;
+  avatar25?.notifyActivity();
   clearTimeout(resetTimer);
   const seconds=Number.isInteger(config?.idleTimeoutSec)?config.idleTimeoutSec:120;
   resetTimer=setTimeout(()=>{void resetVisitorSession();},Math.max(30,Math.min(900,seconds))*1000);
@@ -528,6 +529,7 @@ async function loadPremium2D5(){
   stage.append(layer);
   try{
     avatar25=new IllustratedAvatar25D(layer);
+    avatar25.setIdleEnabled(config?.avatarIdleEnabled!==false);
     avatar25.setAvatar(selected);
     avatar25.setState(currentVoiceState);
     stage.classList.add('avatar-25d-ready');

@@ -25,6 +25,9 @@ test('each organization has independent one-time login name and code',async()=>{
 });
 test('idle session policies are validated and inherited per branch',()=>{
  assert.equal(DEFAULT_SETTINGS.idleTimeoutSec,120);
+ assert.equal(DEFAULT_SETTINGS.avatarIdleEnabled,true);
+ assert.equal(validateSettings({avatarIdleEnabled:false}).avatarIdleEnabled,false);
+ assert.throws(()=>validateSettings({avatarIdleEnabled:'yes'}));
  assert.equal(validateSettings({idleTimeoutSec:45,resetOnDisconnect:false}).idleTimeoutSec,45);
  assert.throws(()=>validateSettings({idleTimeoutSec:0}));
  assert.throws(()=>validateSettings({idleTimeoutSec:1000}));

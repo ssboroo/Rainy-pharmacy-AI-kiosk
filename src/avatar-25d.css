@@ -176,3 +176,92 @@
 @media(prefers-reduced-motion:reduce){
   #avatar25 .avatar25-antenna,#avatar25 .avatar25-hologram-halo,#avatar25 .avatar25-bunny-ears,#avatar25 .avatar25-fox-ears{animation:none!important}
 }
+
+
+/* RAINY Living Avatar — varied, gentle expressions only while awaiting a visitor.
+   Timed by avatar-idle.js; no perpetual JS animation frame, camera, or recording. */
+#avatar25 .avatar25-idle-arms{opacity:0;pointer-events:none}
+#avatar25 .avatar25-idle-arm-left{transform-origin:288px 515px}
+#avatar25 .avatar25-idle-arm-right{transform-origin:513px 515px}
+#avatar25 .avatar25-idle-yawn-mouth{opacity:0;transform-origin:400px 450px}
+#avatar25[data-idle-gesture="glance"] .avatar25-gaze{animation:rainy-idle-glance 1.9s ease-in-out both}
+#avatar25[data-idle-gesture="glance"] .avatar25-head{animation:rainy-idle-head-glance 1.9s ease-in-out both}
+#avatar25[data-idle-gesture="curious"] .avatar25-head{animation:rainy-idle-curious 2.3s ease-in-out both}
+#avatar25[data-idle-gesture="curious"] .avatar25-gaze{animation:rainy-idle-look-up 2.3s ease-in-out both}
+#avatar25[data-idle-gesture="sway"] .avatar25-float{animation:rainy-idle-sway 2.1s ease-in-out both}
+#avatar25[data-idle-gesture="drowsy"] .avatar25-head{animation:rainy-idle-drowsy 2.6s ease-in-out both}
+#avatar25[data-idle-gesture="drowsy"] .avatar25-eyelid{animation:rainy-idle-lids 2.6s ease-in-out both}
+#avatar25[data-idle-gesture="yawn"] .avatar25-head{animation:rainy-idle-yawn-head 3.2s ease-in-out both}
+#avatar25[data-idle-gesture="yawn"] .avatar25-eyelid{animation:rainy-idle-lids 3.2s ease-in-out both}
+#avatar25[data-idle-gesture="yawn"] .avatar25-mouth-smile{opacity:0}
+#avatar25[data-idle-gesture="yawn"] .avatar25-idle-yawn-mouth{animation:rainy-idle-yawn-mouth 3.2s ease-in-out both}
+#avatar25[data-idle-gesture="stretch"] .avatar25-head{animation:rainy-idle-stretch-head 3.1s ease-in-out both}
+#avatar25[data-idle-gesture="stretch"] .avatar25-idle-arms{opacity:1;animation:rainy-idle-arms 3.1s ease-in-out both}
+#avatar25[data-idle-gesture="stretch"] .avatar25-idle-arm-left{animation:rainy-idle-arm-left 3.1s ease-in-out both}
+#avatar25[data-idle-gesture="stretch"] .avatar25-idle-arm-right{animation:rainy-idle-arm-right 3.1s ease-in-out both}
+@keyframes rainy-idle-glance{
+  0%,100%{transform:translate(0,0)}
+  24%,56%{transform:translate(12px,-2px)}
+  74%{transform:translate(-5px,0)}
+}
+@keyframes rainy-idle-head-glance{
+  0%,100%{transform:rotate(0deg)}
+  28%,56%{transform:rotate(2.5deg)}
+}
+@keyframes rainy-idle-curious{
+  0%,100%{transform:rotate(0deg)}
+  27%,72%{transform:rotate(-7deg) translateY(-5px)}
+}
+@keyframes rainy-idle-look-up{
+  0%,100%{transform:translate(0,0)}
+  25%,72%{transform:translate(1px,-9px)}
+}
+@keyframes rainy-idle-sway{
+  0%,100%{transform:translateY(0) rotate(0deg)}
+  28%{transform:translateY(-11px) rotate(2.5deg)}
+  65%{transform:translateY(-4px) rotate(-2deg)}
+}
+@keyframes rainy-idle-drowsy{
+  0%,100%{transform:rotate(0deg) translateY(0)}
+  37%,70%{transform:rotate(6deg) translateY(8px)}
+}
+@keyframes rainy-idle-yawn-head{
+  0%,100%{transform:translateY(0) rotate(0)}
+  33%,76%{transform:translateY(-4px) rotate(-3deg)}
+}
+@keyframes rainy-idle-lids{
+  0%,18%,90%,100%{opacity:0;transform:scaleY(1)}
+  35%,72%{opacity:1;transform:scaleY(17)}
+}
+@keyframes rainy-idle-yawn-mouth{
+  0%,18%,90%,100%{opacity:0;transform:scaleY(.25)}
+  38%,70%{opacity:1;transform:scaleY(6)}
+}
+@keyframes rainy-idle-stretch-head{
+  0%,100%{transform:translateY(0) rotate(0)}
+  36%,65%{transform:translateY(-8px) rotate(-2deg)}
+}
+@keyframes rainy-idle-arms{
+  0%,10%,90%,100%{opacity:0}
+  23%,75%{opacity:1}
+}
+@keyframes rainy-idle-arm-left{
+  0%,100%{transform:rotate(10deg)}
+  33%,70%{transform:rotate(-36deg)}
+}
+@keyframes rainy-idle-arm-right{
+  0%,100%{transform:rotate(-10deg)}
+  33%,70%{transform:rotate(36deg)}
+}
+@media (prefers-reduced-motion:reduce){
+ #avatar25[data-idle-gesture] .avatar25-gaze,
+ #avatar25[data-idle-gesture] .avatar25-head,
+ #avatar25[data-idle-gesture] .avatar25-float,
+ #avatar25[data-idle-gesture] .avatar25-eyelid,
+ #avatar25[data-idle-gesture] .avatar25-idle-arms,
+ #avatar25[data-idle-gesture] .avatar25-idle-arm-left,
+ #avatar25[data-idle-gesture] .avatar25-idle-arm-right,
+ #avatar25[data-idle-gesture] .avatar25-idle-yawn-mouth{animation:none!important}
+ #avatar25 .avatar25-idle-arms,
+ #avatar25 .avatar25-idle-yawn-mouth{opacity:0!important}
+}
