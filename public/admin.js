@@ -503,3 +503,11 @@ $('ownerBranchConfig').onsubmit=async event=>{
  try{await api('branches/config','PUT',{slug,settings});show('Байгууллагын AI тохиргоо хадгалагдлаа. Киоск дахин ачаалахад хэрэгжинэ.');}
  catch(error){show('Байгууллагын тохиргооны алдаа: '+error.message);}
 };
+
+const subscriptionMonthlyPrices={starter:399000,pro:699000,enterprise:1299000};
+function renderSubscriptionPrice(){
+ const price=subscriptionMonthlyPrices[$('subscriptionPlan').value];
+ $('subscriptionPriceNote').textContent='Сарын багцын жишиг үнэ: '+new Intl.NumberFormat('mn-MN').format(price)+'₮. Төлбөр автоматаар татагдахгүй; эрхийн дуусах огноог админ тохируулна.';
+}
+$('subscriptionPlan').addEventListener('change',renderSubscriptionPrice);
+renderSubscriptionPrice();
