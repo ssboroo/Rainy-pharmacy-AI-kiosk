@@ -8,6 +8,7 @@ import {readFile,writeFile,rename,mkdir} from 'node:fs/promises';
 import {join,resolve,dirname} from 'node:path';
 import {randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {createAnalyticsStore} from './analytics.mjs';
+import {createDeviceStore} from './devices.mjs';
 import {DEFAULT_SETTINGS,DEMO_CATALOG,validateSettings,validateCatalog} from './core.mjs';
 
 export function validateBranchSlug(input){
@@ -58,6 +59,8 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
     catch(e){if(e.code!=='ENOENT')throw e;}
     const analytics=createAnalyticsStore({filePath:join(folder,'analytics.json')});
     await analytics.load();
+    const devices=createDeviceStore({filePath:join(folder,'devices.json')});
+    await devices.load();
     let saveQueue=Promise.resolve();
     async function persist(name,value){
       const step=saveQueue.catch(()=>{}).then(async()=>{
@@ -69,7 +72,7 @@ export function createBranchRegistry({dataDir,defaultSettings=DEFAULT_SETTINGS,d
       saveQueue=step;await step;
     }
     const instance={
-      slug:row.slug,analytics,
+      slug:row.slug,analytics,devices,
       get settings(){return settings;},
       get catalog(){return catalog;},
       async updateSettings(input){
