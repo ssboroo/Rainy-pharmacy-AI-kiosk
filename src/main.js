@@ -1,3 +1,4 @@
+import {isWithinOperatingHours,isUsefulMongolianSpeech} from './kiosk-operations.js';
 import {Conversation} from '@elevenlabs/client';
 import {ELEVENLABS_WORKLET_PATHS} from './voice-worklets.js';
 import {findMedicineMention} from './medicine-panel.js';
@@ -17,7 +18,11 @@ let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=
 let lastWakeAt=0;
 let avatar25=null,localSessionWanted=false;
 let analyticsSessionRecorded=false;
-let resettingVisitor=false,visitorEpoch=0;
+let resettingVisitor=false,visitorEpoch=0,voiceBudgetTimer=null,lastVoiceStartAt=0;
+const MAX_VOICE_SESSION_MS=120000;
+function clinicOpen(){return isWithinOperatingHours();}
+function stopVoiceBudget(){clearTimeout(voiceBudgetTimer);voiceBudgetTimer=null;}
+function startVoiceBudget(){stopVoiceBudget();lastVoiceStartAt=Date.now();voiceBudgetTimer=setTimeout(()=>{void resetVisitorSession();},MAX_VOICE_SESSION_MS);}
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -50,6 +55,7 @@ async function resetVisitorSession(){
   resettingVisitor=true;
   visitorEpoch++;
   clearTimeout(resetTimer);resetTimer=null;
+  stopVoiceBudget();
   analyticsSessionRecorded=false;
   try{
     await stopVoice();
@@ -252,8 +258,9 @@ async function enableMicFromStaff(){
   if(!navigator.mediaDevices?.getUserMedia){
     toast('HTTPS эсвэл localhost дээр л микрофон зөвшөөрөх боломжтой.');return;
   }
+  if(!clinicOpen()){toast('Микрофон 08:00–22:00 цагт идэвхтэй байна.');return;}
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     stream.getTracks().forEach(track=>track.stop());
     localStorage.setItem(WAKE_STORAGE_KEY,'1');
     wakeListener.enable();
@@ -263,7 +270,7 @@ async function enableMicFromStaff(){
   }catch(error){toast('Микрофон зөвшөөрөл олгогдсонгүй: '+error.message);}
 }
 async function restoreMicIfGranted(){
-  if(localStorage.getItem(WAKE_STORAGE_KEY)!=='1')return;
+  if(localStorage.getItem(WAKE_STORAGE_KEY)!=='1'||!clinicOpen())return;
   try{
     if(!navigator.permissions?.query)return;
     const permission=await navigator.permissions.query({name:'microphone'});
@@ -273,6 +280,7 @@ async function restoreMicIfGranted(){
   updateMicrophoneUI();
 }
 async function stopVoice(resumeWake=true){
+  stopVoiceBudget();
   localSessionWanted=false;
   try{window.speechSynthesis?.cancel();}catch{}
   if(recognition){const old=recognition;recognition=null;old.onend=null;old.onerror=null;old.onresult=null;try{old.abort();}catch{}}
@@ -301,7 +309,7 @@ async function startLocalVoiceSession(fromWake){
     for(let i=event.resultIndex||0;i<event.results.length;i++){
       if(!event.results[i].isFinal)continue;
       const transcript=event.results[i][0]?.transcript||'';
-      if(transcript.trim())await ask(transcript);
+      if(isUsefulMongolianSpeech(transcript))await ask(transcript);
     }
   };
   session.onerror=event=>{
@@ -321,6 +329,11 @@ async function startLocalVoiceSession(fromWake){
   catch(e){recognition=null;toast(e.message);await stopVoice();}
 }
 async function startVoice(fromWake=false){
+  if(!clinicOpen()){
+    toast('AI дуут үйлчилгээ Улаанбаатарын цагаар 08:00–22:00 ажиллана.');
+    if(wakeListener?.enabled)wakeListener.pause();
+    return;
+  }
   activity();
   if(voiceStarting)return;
   if(conversation||recognition){if(!fromWake)await stopVoice();return;}
@@ -328,6 +341,7 @@ async function startVoice(fromWake=false){
   markKioskInteraction();
   trackAnalytics('voiceStarted');
   voiceStarting=true;
+  startVoiceBudget();
   startVoiceVisuals();
   $('micBtnText').textContent='Яриаг зогсоох';
   if(config?.voiceReady){
@@ -356,6 +370,7 @@ async function startVoice(fromWake=false){
         onModeChange:mode=>setStatus(mode.mode==='speaking'?'speaking':'listening'),
         onMessage:message=>{
           const text=message.message;
+          if(message.source==='user'&&!isUsefulMongolianSpeech(text))return;
           // Defense-in-depth: an external ElevenLabs Agent must also have
           // pharmacist-reviewed prompts. This client cannot mute audio already
           // spoken by the provider, but immediately flags clinical requests.
@@ -661,6 +676,8 @@ async function init(){
     }
     await restoreMicIfGranted();
     activity();
+    // Stop wake microphone after closing; do not keep a cloud session alive overnight.
+    setInterval(()=>{if(!clinicOpen()){wakeListener?.pause();if(conversation||recognition||voiceStarting)void resetVisitorSession();}else if(wakeListener?.enabled&&!conversation&&!recognition)wakeListener.resume(500);},60000);
   }catch(e){
     $('greetingBubble').textContent='Сервертэй холбогдож чадсангүй. Байгууллагын ажилтнаас тусламж авна уу.';
     toast(e.message);
