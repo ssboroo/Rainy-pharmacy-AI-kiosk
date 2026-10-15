@@ -140,3 +140,32 @@ body.immersive-kiosk{overflow:hidden}
 @media(min-width:1101px) and (min-height:700px){.sidebar{padding-top:20px!important}.brand-mark{padding-bottom:18px!important}.nav-item{min-height:54px!important}}
 @media(max-width:1000px) and (min-width:681px){.brand-mark{justify-items:center}.sidebar-brand-logo{width:57px!important;height:52px!important;padding:5px!important}.brand-mark>div{display:none}}
 @media(max-width:680px){.brand-mark{display:none!important}}
+
+/* Display integrity: do not clip lower robot/body, input or actions to fake a one-screen layout. */
+@media(min-width:1101px) and (min-height:700px){
+ html,body{height:100%;overflow:hidden}
+ .app-shell,.main-area{height:100dvh;min-height:0}
+ .main-inner{
+  display:flex!important;flex-direction:column!important;
+  height:calc(100dvh - 66px)!important;min-height:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  scrollbar-width:thin;overscroll-behavior:contain;
+ }
+ .section-title,.avatar-section,.demo-banner,.legal-foot{flex:0 0 auto}
+ .content-grid{
+  display:grid!important;flex:1 0 auto!important;
+  min-height:min(690px,calc(100dvh - 265px))!important;
+  overflow:visible!important;align-items:stretch
+ }
+ .stage-card{min-height:560px!important;overflow:hidden}
+ .stage-persona{min-height:280px!important}
+ .right-column{min-height:560px!important;overflow:visible!important}
+ .chat-panel{min-height:190px!important}
+ .avatar-section{margin-top:0!important}
+ .legal-foot{padding:10px 0 7px!important;margin-bottom:3px!important}
+}
+@media(max-width:1100px),(max-height:699px){
+ .main-area,.main-inner,.content-grid{overflow:visible!important}
+ .stage-card{min-height:540px}
+ .legal-foot{padding-bottom:20px}
+}
