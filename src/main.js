@@ -62,6 +62,7 @@ async function resetVisitorSession(){
 }
 function activity(){
   if(resettingVisitor)return;
+  avatar25?.notifyActivity();
   clearTimeout(resetTimer);
   const seconds=Number.isInteger(config?.idleTimeoutSec)?config.idleTimeoutSec:120;
   resetTimer=setTimeout(()=>{void resetVisitorSession();},Math.max(30,Math.min(900,seconds))*1000);
