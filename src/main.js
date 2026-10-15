@@ -372,11 +372,17 @@ async function startVoice(fromWake=false){
     try{
       setStatus('connecting');
       const startedAt=visitorEpoch;
-      const {signedUrl}=await api('/agent/signed-url');
+      const [signed,voiceContext]=await Promise.all([api('/agent/signed-url'),api('/agent/voice-context')]);
       if(startedAt!==visitorEpoch){voiceStarting=false;return;}
-      // Audio travels only to a clinician-approved ElevenLabs Agent.
+      if(branchSlug&&!voiceContext.catalogCount)throw Error('Баталгаажсан эмийн каталог хараахан байхгүй');
+      // ElevenLabs Agent Security must permit per-conversation prompt and ASR
+      // keyword overrides. If it does not, the catch handler uses the
+      // catalog-only local STT route instead of an unscoped live agent.
+      const overrides={agent:{prompt:{prompt:voiceContext.prompt}}};
+      if(voiceContext.keywords?.length)overrides.asr={keywords:voiceContext.keywords};
       const live=await Conversation.startSession({
-        signedUrl,
+        signedUrl:signed.signedUrl,
+        overrides,
         connectionType:'websocket',
         workletPaths:ELEVENLABS_WORKLET_PATHS,
         onConnect:()=>{setStatus('listening');trackAnalytics('voiceConnected');},
