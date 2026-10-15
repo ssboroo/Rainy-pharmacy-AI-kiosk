@@ -10,7 +10,7 @@ export function voiceAllowed(env, agentId) { return voiceConnectionStatus(env,ag
 export const DEFAULT_SETTINGS = {
   pharmacyName:'RAINY Pharmacy',assistantName:'Номи',
   greeting:'Сайн байна уу! Би таны эмийн сангийн AI туслах. Надаас асуугаарай.',
-  defaultAvatar:'nomi',accent:'#35bea3',locationName:'Эмийн сангийн мэдээллийн цэг',agentId:''
+  defaultAvatar:'nomi',accent:'#35bea3',locationName:'Эмийн сангийн мэдээллийн цэг',agentId:'',logoData:''
 };
 export const DEMO_CATALOG = EXAMPLE_MEDICINES;
 export function voiceConnectionStatus(env,agentId){
@@ -55,6 +55,23 @@ export function validateSettings(input,prev=DEFAULT_SETTINGS) {
   if('defaultAvatar' in input){if(!AVATARS.some(a=>a.id===input.defaultAvatar))throw Error('AI дүр танигдсангүй.');next.defaultAvatar=input.defaultAvatar;}
   if('accent' in input){if(!/^#[a-fA-F0-9]{6}$/.test(input.accent))throw Error('Өнгө #RRGGBB форматаар байна.');next.accent=input.accent;}
   if('agentId' in input){if(typeof input.agentId!=='string'||!/^[a-zA-Z0-9_-]{0,120}$/.test(input.agentId))throw Error('Agent ID формат буруу.');next.agentId=input.agentId;}
+  if('logoData' in input){
+    const value=input.logoData;
+    if(value===''){next.logoData='';}
+    else{
+      if(typeof value!=='string'||value.length>290000)throw Error('Лого хэт том байна (210KB хүртэл).');
+      const match=/^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);
+      if(!match)throw Error('Лого зөвхөн PNG, JPEG, WebP байна.');
+      const bytes=Buffer.from(match[2],'base64');
+      if(bytes.length<12||bytes.length>210000)throw Error('Логоны хэмжээ буруу.');
+      const hex=bytes.subarray(0,12).toString('hex');
+      const isPng=match[1]==='png'&&hex.startsWith('89504e470d0a1a0a');
+      const isJpeg=match[1]==='jpeg'&&hex.startsWith('ffd8ff');
+      const isWebp=match[1]==='webp'&&bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP';
+      if(!isPng&&!isJpeg&&!isWebp)throw Error('Зураг баталгаажаагүй.');
+      next.logoData=value;
+    }
+  }
   return next;
 }
 export function validateCatalog(input){
