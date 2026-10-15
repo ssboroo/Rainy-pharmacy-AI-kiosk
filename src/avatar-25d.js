@@ -32,7 +32,16 @@ function headShape(id,p,prefix){
   return `<rect x="218" y="181" width="364" height="346" rx="${radius}" fill="${p.deep}" opacity=".45" filter="url(#${prefix}-blur)"/><rect x="219" y="177" width="362" height="343" rx="${radius}" fill="url(#${prefix}-shell)" stroke="#fff" stroke-width="8" stroke-opacity=".88"/><path d="M293 204 Q400 171 510 205" fill="none" stroke="#fff" stroke-width="16" stroke-linecap="round" opacity=".64"/><rect x="242" y="220" width="316" height="248" rx="98" fill="url(#${prefix}-${id==='aria'?'sky':'visor'})" stroke="#e9ffff" stroke-opacity=".6" stroke-width="5"/><path d="M281 255 Q391 214 486 242" fill="none" stroke="#fff" stroke-width="14" opacity=".16" stroke-linecap="round"/><rect x="258" y="236" width="284" height="209" rx="91" fill="url(#${prefix}-shine)" opacity=".22"/>`;
 }
 function eyeShape(id,p){
-  if(id==='mira')return `<g class="avatar25-eyes 2d5-eyes"><path d="M302 347 Q337 310 369 347 Q339 365 302 347Z" fill="#fff" stroke="${p.hair}" stroke-width="6"/><path d="M431 347 Q464 310 499 347 Q461 365 431 347Z" fill="#fff" stroke="${p.hair}" stroke-width="6"/><ellipse cx="337" cy="345" rx="13" ry="17" fill="#745777"/><ellipse cx="463" cy="345" rx="13" ry="17" fill="#745777"/><circle cx="333" cy="338" r="6" fill="#fff"/><circle cx="459" cy="338" r="6" fill="#fff"/><ellipse class="avatar25-eyelid" cx="337" cy="345" rx="36" ry="2" fill="#f7d5c2"/><ellipse class="avatar25-eyelid" cx="463" cy="345" rx="36" ry="2" fill="#f7d5c2"/></g>`;
+  if(id==='mira')return `<g class="avatar25-eyes 2d5-eyes">
+    <path d="M316 370 Q344 347 373 371 Q343 394 316 370Z" fill="#fffafa" stroke="#6e4c77" stroke-width="5"/>
+    <path d="M428 371 Q456 347 485 370 Q455 394 428 371Z" fill="#fffafa" stroke="#6e4c77" stroke-width="5"/>
+    <ellipse cx="344" cy="370" rx="15" ry="20" fill="#856a9b"/><ellipse cx="457" cy="370" rx="15" ry="20" fill="#856a9b"/>
+    <ellipse cx="344" cy="372" rx="8" ry="13" fill="#483651"/><ellipse cx="457" cy="372" rx="8" ry="13" fill="#483651"/>
+    <circle cx="339" cy="364" r="6" fill="#fff"/><circle cx="452" cy="364" r="6" fill="#fff"/>
+    <path d="M319 359 L307 349 M481 359 L493 349" fill="none" stroke="#6e4c77" stroke-width="5" stroke-linecap="round"/>
+    <ellipse class="avatar25-eyelid" cx="344" cy="370" rx="34" ry="2" fill="#e5b9a8"/>
+    <ellipse class="avatar25-eyelid" cx="457" cy="370" rx="34" ry="2" fill="#e5b9a8"/>
+  </g>`;
   return `<g class="avatar25-eyes 2d5-eyes"><g class="avatar25-eye"><ellipse cx="335" cy="345" rx="28" ry="43" fill="${p.eye}" opacity=".45" filter="url(#rainy25-eye-glow)"/><ellipse cx="335" cy="345" rx="24" ry="36" fill="${p.eye}"/><ellipse cx="328" cy="332" rx="9" ry="13" fill="#fff"/><circle cx="348" cy="364" r="5" fill="#fff" opacity=".66"/></g><g class="avatar25-eye"><ellipse cx="465" cy="345" rx="28" ry="43" fill="${p.eye}" opacity=".45" filter="url(#rainy25-eye-glow)"/><ellipse cx="465" cy="345" rx="24" ry="36" fill="${p.eye}"/><ellipse cx="458" cy="332" rx="9" ry="13" fill="#fff"/><circle cx="478" cy="364" r="5" fill="#fff" opacity=".66"/></g><ellipse class="avatar25-eyelid" cx="335" cy="345" rx="39" ry="2" fill="#dcfff7"/><ellipse class="avatar25-eyelid" cx="465" cy="345" rx="39" ry="2" fill="#dcfff7"/></g>`;
 }
 export function avatarMarkup(id,prefix='rainy25'){
@@ -49,6 +58,7 @@ export function avatarMarkup(id,prefix='rainy25'){
     <linearGradient id="${token}-visor" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#224957"/><stop offset=".51" stop-color="#102e40"/><stop offset="1" stop-color="#35646b"/></linearGradient>
     <linearGradient id="${token}-sky" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#d6fbff"/><stop offset=".56" stop-color="#a1d6f4"/><stop offset="1" stop-color="#668ec8"/></linearGradient>
     <linearGradient id="${token}-shine" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#fff" stop-opacity=".6"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="${token}-mira-hair" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#402e4c"/><stop offset=".55" stop-color="#7c5b85"/><stop offset="1" stop-color="#443450"/></linearGradient>
     <linearGradient id="${token}-skin" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ffeae0"/><stop offset=".6" stop-color="#f6cdbd"/><stop offset="1" stop-color="#d8a1a1"/></linearGradient>
     <filter id="${token}-blur" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="7"/></filter>
     <filter id="${token}-eye-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
@@ -57,20 +67,31 @@ export function avatarMarkup(id,prefix='rainy25'){
   <g clip-path="url(#${token}-mask)">
     <ellipse cx="400" cy="379" rx="325" ry="338" fill="url(#${token}-halo)"/>
     <g class="avatar25-orbit" opacity=".73"><circle cx="400" cy="371" r="310" stroke="#fff" stroke-width="2.5" fill="none"/><circle cx="400" cy="371" r="280" stroke="${p.tint}" stroke-width="2" stroke-dasharray="5 21" fill="none"/><path d="M635 145 L645 169 L668 178 L644 187 L635 211 L626 187 L604 178 L627 169Z" fill="#fff"/><path d="M172 258 L180 274 L196 280 L179 286 L172 302 L166 286 L150 280 L166 274Z" fill="${p.tint}"/></g>
-    <!-- 2.5D head only, no neck, shoulders or torso -->
+    <!-- Mira wears a compact clinical outfit; all other avatars preserve their silhouettes. -->
     <ellipse cx="400" cy="671" rx="168" ry="17" fill="${p.deep}" opacity=".06" filter="url(#${token}-blur)"/>
     <g class="avatar25-float avatar25-head-only">
-      <g transform="translate(400 390) scale(1.32) translate(-400 -350)">
-      <g class="${({nomi:'avatar25-antenna',mira:'avatar25-human-hair',kiki:'avatar25-fox-ears',aria:'avatar25-hologram-halo',bobo:'avatar25-bunny-ears'})[valid]}">${headAccessory(valid,p)}</g>
+      <g transform="${valid==='mira'?'translate(400 385) scale(1.03) translate(-400 -385)':'translate(400 390) scale(1.32) translate(-400 -350)'}">
+      ${valid==='mira'?`<g class="avatar25-mira-outfit">
+        <path d="M381 504 Q387 523 380 549 L355 576 L394 611 L449 571 L424 549 L424 504Z" fill="#f3c8bd"/>
+        <path d="M258 710 Q260 593 331 571 L373 552 L399 597 L429 550 L473 572 Q543 597 550 710Z" fill="#f8f5ff" stroke="#a696bb" stroke-width="5"/>
+        <path d="M373 556 L397 597 L369 656 L338 572Z" fill="#ded2f3" stroke="#b9a6d9" stroke-width="3"/>
+        <path d="M429 555 L398 599 L432 655 L469 573Z" fill="#e9e1fa" stroke="#b9a6d9" stroke-width="3"/>
+        <path d="M328 585 Q303 619 300 703 M475 582 Q496 615 502 703" fill="none" stroke="#c3b4d4" stroke-width="5" opacity=".55"/>
+        <path d="M377 628 L377 687" stroke="#c2b5d4" stroke-width="4"/>
+        <circle cx="389" cy="649" r="4" fill="#806a9b"/><circle cx="389" cy="678" r="4" fill="#806a9b"/>
+        <rect x="448" y="615" width="48" height="38" rx="9" fill="#dbf6e8" stroke="#bce3cf" stroke-width="3"/>
+        <path d="M471 625 v18 M462 634 h18" stroke="#298d69" stroke-width="5" stroke-linecap="round"/>
+      </g>`:''}
+      <g class="${({nomi:'avatar25-antenna',mira:'avatar25-human-hair',kiki:'avatar25-fox-ears',aria:'avatar25-hologram-halo',bobo:'avatar25-bunny-ears'})[valid]}">${headAccessory(valid,p,token)}</g>
       <g class="avatar25-head 2d5-head">
         ${headShape(valid,p,token)}
         <g class="avatar25-gaze">${eyeMarkup}</g>
-        <ellipse cx="283" cy="413" rx="27" ry="14" fill="${cheek}" opacity=".33"/>
-        <ellipse cx="517" cy="413" rx="27" ry="14" fill="${cheek}" opacity=".33"/>
+        <ellipse cx="${valid==='mira'?319:283}" cy="${valid==='mira'?426:413}" rx="23" ry="12" fill="${cheek}" opacity=".3"/>
+        <ellipse cx="${valid==='mira'?480:517}" cy="${valid==='mira'?426:413}" rx="23" ry="12" fill="${cheek}" opacity=".3"/>
         <g class="avatar25-mouth-group">
-          <path class="avatar25-mouth-smile" d="M368 428 Q399 464 432 428" stroke="${valid==='mira'?'#b27681':p.eye}" stroke-width="9" fill="none" stroke-linecap="round"/>
-          <ellipse class="avatar25-mouth-open 2d5-mouth-open" cx="400" cy="438" rx="18" ry="6" fill="${valid==='mira'?'#8c495e':'#173a43'}" stroke="${valid==='mira'?'#bd8190':p.tint}" stroke-width="3" opacity="0"/>
-          <ellipse class="avatar25-mouth-tongue" cx="400" cy="448" rx="9" ry="4" fill="#f7a7be" opacity="0"/>
+          <path class="avatar25-mouth-smile" d="${valid==='mira'?'M376 449 Q401 472 424 448':'M368 428 Q399 464 432 428'}" stroke="${valid==='mira'?'#b27681':p.eye}" stroke-width="9" fill="none" stroke-linecap="round"/>
+          <ellipse class="avatar25-mouth-open 2d5-mouth-open" cx="400" cy="${valid==='mira'?455:438}" rx="18" ry="6" fill="${valid==='mira'?'#8c495e':'#173a43'}" stroke="${valid==='mira'?'#bd8190':p.tint}" stroke-width="3" opacity="0"/>
+          <ellipse class="avatar25-mouth-tongue" cx="400" cy="${valid==='mira'?469:448}" rx="9" ry="4" fill="#f7a7be" opacity="0"/>
         </g>
         ${valid==='kiki'?'<path d="M270 393 L300 400 M270 416 L297 419 M531 393 L500 400 M531 416 L502 419" stroke="#ffdac1" stroke-width="5" stroke-linecap="round" opacity=".75"/>':''}
         ${valid==='aria'?'<path d="M271 263 Q400 229 528 262" stroke="#fff" stroke-width="8" opacity=".39" fill="none"/>':''}
