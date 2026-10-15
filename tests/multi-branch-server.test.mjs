@@ -180,6 +180,15 @@ test('HTTP multi-pharmacy: each branch credentials, inventory, assistant and met
     assert.equal(history.data.history.length,2);
     assert.equal(history.data.subscription.status,'paused');
     assert.equal((await call('/api/admin/subscription?branch=one-branch',{auth:key2})).status,401);
+    assert.equal((await call('/api/admin/branches/credentials',{method:'PUT',auth:key1,body:{slug:'one-branch',loginCode:'VeryLongNewCode123456'}})).status,401);
+    assert.equal((await call('/api/admin/branches/credentials',{method:'PUT',auth:token,body:{slug:'one-branch',loginCode:'short'}})).status,400);
+    assert.equal((await call('/api/admin/branches/credentials',{method:'PUT',auth:token,body:{slug:'one-branch',loginName:'newmanager',loginCode:'VeryLongNewCode123456',adminToken:'new-secret-token-12345678901234567890'}})).status,200);
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:loginAuth})).status,401);
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{auth:key1})).status,401);
+    const newBasic='Basic '+Buffer.from('newmanager:VeryLongNewCode123456').toString('base64');
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{authHeader:newBasic})).status,200);
+    assert.equal((await call('/api/admin/settings?branch=one-branch',{auth:'new-secret-token-12345678901234567890'})).status,200);
+    assert.equal((await call('/api/admin/settings?branch=two-branch',{authHeader:newBasic})).status,401);
   }finally{
     child.kill('SIGTERM');
     await new Promise(resolve=>child.exitCode!==null?resolve():child.once('exit',resolve));
