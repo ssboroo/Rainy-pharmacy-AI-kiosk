@@ -11,7 +11,7 @@ import {toneForState,acceptVoiceTranscript} from './kiosk-policy.js';
 const $=id=>document.getElementById(id);
 const branchSlug=new URLSearchParams(window.location.search).get('branch')||'';
 const scopedPath=route=>route+(branchSlug?(route.includes('?')?'&':'?')+'branch='+encodeURIComponent(branchSlug):'');
-let medicineNameIndex=[],medicineLastId='',medicineRequestSerial=0;
+let medicineNameIndex=[],medicineLastId='',medicineRequestSerial=0,activeProductCard=null;
 let config=null,selected='nomi',conversation=null,cameraStream=null,recognition=null,resetTimer=null;
 let wakeListener=null,voiceStarting=false,currentVoiceState='ready',visualFrame=0,lastVisualLevel=0;
 let lastWakeAt=0;
@@ -78,24 +78,58 @@ function clearMedicineCard(){
   medicineRequestSerial++;
   medicineLastId='';
   $('medicineLiveCard').hidden=true;
+  activeProductCard?.remove();activeProductCard=null;
+}
+function medicinePhoto(item){
+  if(!item?.imageUrl||!/^https:\/\//i.test(item.imageUrl))return null;
+  const image=document.createElement('img');
+  image.src=item.imageUrl;
+  image.alt=item.name+' бүтээгдэхүүний зураг';
+  image.loading='lazy';
+  image.referrerPolicy='no-referrer';
+  image.onerror=()=>image.replaceWith(element('span','product-photo-placeholder','✚'));
+  return image;
+}
+function medicineProductCard(item){
+  const card=element('article','medicine-product-card');
+  const photo=element('button','medicine-product-photo');
+  photo.type='button';photo.setAttribute('aria-label',item.name+' бүтээгдэхүүний мэдээлэл нээх');
+  const img=medicinePhoto(item);
+  photo.append(img||element('span','product-photo-placeholder','✚'));
+  photo.onclick=()=>showMedicineDetails(item);
+  const body=element('div','medicine-product-content');
+  body.append(element('strong','medicine-product-name',item.name));
+  if(item.form)body.append(element('small','medicine-product-form',item.form));
+  if(item.description)body.append(element('p','medicine-product-description',item.description));
+  const facts=element('div','medicine-product-facts');
+  if(item.priceMnt!=null)facts.append(element('span','medicine-product-price',item.priceMnt.toLocaleString('en-US')+' ₮'));
+  facts.append(element('span','medicine-product-stock',item.stock==null?'Үлдэгдлийг лавлах':item.stock===0?'Үлдэгдэлгүй':('Үлдэгдэл: '+item.stock)));
+  body.append(facts);
+  const actions=element('div','medicine-product-actions');
+  const more=element('button','medicine-product-more','Дэлгэрэнгүй');
+  more.onclick=()=>showMedicineDetails(item);
+  const staff=element('button','medicine-product-buy','Авах талаар эм зүйчээс лавлах');
+  staff.onclick=()=>{void handoff();};
+  actions.append(more,staff);
+  body.append(actions);card.append(photo,body);
+  return card;
 }
 async function showMedicineForSpeech(line){
   if(typeof line!=='string'||!medicineNameIndex.length)return;
   const mention=findMedicineMention(line,medicineNameIndex);
   if(!mention)return;
-  if(mention.id===medicineLastId&&!$('medicineLiveCard').hidden)return;
+  if(mention.id===medicineLastId&&activeProductCard?.isConnected)return;
   medicineLastId=mention.id;
   const serial=++medicineRequestSerial;
   try{
     const {item}=await api('/catalog/medicine?id='+encodeURIComponent(mention.id));
     if(serial!==medicineRequestSerial)return;
-    $('medicineLiveName').textContent=item.name;
-    $('medicineLiveSource').textContent=item.verified?'Каталогийн баталгаажсан бүртгэл':'Туршилтын / баталгаажаагүй бүртгэл';
-    $('medicineLiveForm').textContent=[item.category,item.form].filter(Boolean).join(' · ');
-    $('medicineLiveDescription').textContent=item.description||'Ерөнхий тайлбар байхгүй. Эм зүйчээс лавлана уу.';
-    $('medicineLiveWarning').textContent=item.warnings?'⚠ '+item.warnings:'⚠ Хэрэглэх заавар, тунг эм зүйчээс лавлана уу.';
-    $('medicineLiveCard').hidden=false;
-    $('medicineLiveCard').classList.toggle('is-unverified',!item.verified);
+    if(!item.verified&&branchSlug)return;
+    activeProductCard?.remove();
+    activeProductCard=medicineProductCard(item);
+    $('conversation').append(activeProductCard);
+    $('conversation').scrollTop=$('conversation').scrollHeight;
+    $('medicineLiveCard').hidden=true; // Never cover the speaking avatar.
   }catch{if(serial===medicineRequestSerial)clearMedicineCard();}
 }
 function addMessage(role,text){
@@ -413,6 +447,12 @@ function showMedicineDetails(item,query=''){
   const note=element('p','modal-copy',item.verified?'Энэ бүтээгдэхүүний бүртгэлийг эмийн сан баталгаажуулсан.':'ЖИШЭЭ МЭДЭЭЛЭЛ · Эмийн сангийн бодит нөөц, үнэ, тун, хэрэглэх заавар биш.');
   note.classList.add('medicine-alert');
   body.append(note);
+  const photo=medicinePhoto(item);
+  if(photo){photo.className='medicine-detail-photo';body.append(photo);}
+  const availability=element('p','medicine-detail-availability',
+    (item.priceMnt==null?'Үнийг эм зүйчээс лавлах':item.priceMnt.toLocaleString('en-US')+' ₮')+
+    ' · '+(item.stock==null?'Үлдэгдэл тодорхойгүй':item.stock===0?'Үлдэгдэлгүй':'Үлдэгдэл '+item.stock));
+  body.append(availability);
   for(const [label,value] of [['Ангилал',item.category],['Хэлбэр',item.form],['Ерөнхий мэдээлэл',item.description],['Анхаарах зүйлс',item.warnings],['Хадгалалт',item.storage]]){
     if(!value)continue;
     const block=element('section','medicine-detail');
@@ -423,7 +463,7 @@ function showMedicineDetails(item,query=''){
   const row=element('div','medicine-detail-actions');
   const back=element('button','medicine-back','← Жагсаалт руу');
   back.onclick=()=>catalogModal(query,true);
-  const staff=element('button','medicine-staff','Эм зүйч дуудах');
+  const staff=element('button','medicine-staff','Авах талаар эм зүйчээс лавлах');
   staff.onclick=()=>{closeModal();handoff();};
   row.append(back,staff);body.append(row);
 }
@@ -433,8 +473,8 @@ async function catalogModal(initialQuery='',fromBack=false){
     trackAnalytics('catalogOpened');
   }
   const body=modal('Эмийн мэдээлэл хайх');
-  const prompt=element('p','modal-copy','30 төрлийн жишээ эмийн мэдээлэл. Бодит үнэ, үлдэгдэл, заавар баталгаажаагүй. Эм зүйчээс лавлана уу.');
-  const input=element('input','search-field');input.placeholder='Жишээ: Парацетамол';input.setAttribute('aria-label','Эмийн нэр хайх');
+  const prompt=element('p','modal-copy',branchSlug?'Энд зөвхөн танай эмийн сангийн баталгаажуулсан бүтээгдэхүүн харагдана. Хэрэв мэдээлэл байхгүй бол эм зүйчээс лавлаарай.':'Жишээ каталог. Баталгаажуулаагүй мэдээллээр эм авахгүй, эм зүйчээс лавлана уу.');
+  const input=element('input','search-field');input.placeholder='Бүтээгдэхүүний нэрээр хайх...';input.setAttribute('aria-label','Эмийн нэр хайх');
   const list=element('div','search-results');body.append(prompt,input,list);
   let serial=0;
   const render=async()=>{
@@ -449,7 +489,11 @@ async function catalogModal(initialQuery='',fromBack=false){
         const info=element('span','result-info');
         const title=element('strong',null,item.name);
         const description=element('small',null,item.verified?('Баталгаажуулсан бүртгэл · '+(item.shelf||'Тавиур тодорхойгүй')):(item.category||'Жишээ бүртгэл')+' · Бодит үнэ/нөөц биш');
-        info.append(title,description);card.append(element('span','result-icon','✚'),info,element('span','', '↗'));
+        info.append(title,description);
+        const photo=medicinePhoto(item);
+        if(photo){photo.className='medicine-result-photo';card.append(photo);}
+        else card.append(element('span','result-icon','✚'));
+        card.append(info,element('span','', '↗'));
         card.onclick=()=>showMedicineDetails(item,input.value);list.append(card);
       }
     }catch(e){toast(e.message);}
