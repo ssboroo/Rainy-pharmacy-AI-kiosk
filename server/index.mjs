@@ -6,6 +6,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {createAnalyticsStore,analyticsCSV,metricForAnswer} from './analytics.mjs';
 import {createBranchRegistry} from './branches.mjs';
 import {createDeviceStore} from './devices.mjs';
+import {parseInventorySnapshot,applyInventorySnapshot,buildProviderStatus,shouldEscalateVoiceText} from './phase2.mjs';
 import {AVATARS,DEFAULT_SETTINGS,DEMO_CATALOG,evaluateQuestion,searchCatalog,normalizeText,validateCatalog,validateSettings,voiceAllowed,voiceConnectionStatus,mergeLegacyDemoCatalog} from './core.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
@@ -201,6 +202,16 @@ async function handle(req,res){
         return respond(res,400,{error:'Device identity missing'});
       return respond(res,200,await ctx.devices.heartbeat(value.id,value.token,value.status));
     }
+    if(req.method==='GET'&&route==='/api/integrations/status'){
+      return respond(res,200,{services:buildProviderStatus(process.env,agentId(ctx),voiceEnvironment(ctx).VOICE_AGENT_CLINICAL_APPROVED==='true'),subscription:entitlement});
+    }
+    if(req.method==='POST'&&route==='/api/voice/triage'){
+      const value=await bodyJson(req,1500);
+      if(typeof value?.text!=='string'||value.text.length>1000)return respond(res,400,{error:'Voice text invalid'});
+      // Deterministic redirection only: no recordings or transcripts stored.
+      const escalation=shouldEscalateVoiceText(value.text);
+      return respond(res,200,{requiresPharmacist:escalation,message:escalation?'Энэ асуудлыг эм зүйч шийдвэрлэнэ. Дуудаарай.':'Ерөнхий мэдээллийг баталгаажсан каталогоос шалгана уу.'});
+    }
     if(req.method==='GET'&&route==='/api/catalog')return respond(res,200,{items:searchCatalog(url.searchParams.get('q')||'',ctx.catalog),demoMode:ctx.catalog.some(v=>!v.verified)});
     if(req.method==='GET'&&route==='/api/catalog/names')return respond(res,200,{
       items:ctx.catalog.map(({id,name,aliases})=>({id,name,aliases}))
@@ -300,6 +311,17 @@ async function handle(req,res){
       }
       if(req.method==='GET'&&route==='/api/admin/voice-status')return respond(res,200,agentDiagnostics(ctx));
       if(req.method==='POST'&&route==='/api/admin/voice-test')return respond(res,200,await checkAgentConnection(ctx));
+      if(route==='/api/admin/integrations/status'&&req.method==='GET'){
+        return respond(res,200,{services:buildProviderStatus(process.env,agentId(ctx),voiceEnvironment(ctx).VOICE_AGENT_CLINICAL_APPROVED==='true'),voiceDiagnostics:agentDiagnostics(ctx)});
+      }
+      if(route==='/api/admin/inventory/snapshot'&&req.method==='PUT'){
+        const snapshot=parseInventorySnapshot(await bodyJson(req,150000));
+        const next=applyInventorySnapshot(ctx.catalog,snapshot);
+        await ctx.updateCatalog(next);
+        return respond(res,200,{updated:next.filter((item,i)=>item.verified===true&&snapshot.some(row=>row.id===item.id)).length,
+          ignoredUnverified:snapshot.filter(row=>ctx.catalog.some(item=>item.id===row.id&&!item.verified)).length,
+          mode:'manual-snapshot',livePOSConnected:false});
+      }
       if(route==='/api/admin/devices'){
         if(req.method==='GET')return respond(res,200,{devices:ctx.devices.list()});
         if(req.method==='POST'){
