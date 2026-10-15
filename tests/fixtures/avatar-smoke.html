@@ -9,6 +9,7 @@ const out=document.body;
 try{
  const avatar=new IllustratedAvatar25D(document.getElementById('avatar25'));
  avatar.setState('ready');
+ avatar.setIdleEnabled(false); // isolate computed CSS from timer scheduling during smoke test
  for(const id of Object.keys(AVATAR_STYLES)){
    avatar.setAvatar(id);
    const layer=document.getElementById('avatar25');
