@@ -174,7 +174,8 @@ async function checkAgentConnection(ctx){
     return {...status,connected:false,providerStatus:code,connectionMessage:reason};
   }
 }
-const voiceIssueBudget=createVoiceIssueBudget({limit:6});
+const voiceLimit=Number(process.env.VOICE_SIGNED_URLS_PER_HOUR||24);
+const voiceIssueBudget=createVoiceIssueBudget({limit:Number.isInteger(voiceLimit)&&voiceLimit>=1&&voiceLimit<=120?voiceLimit:24});
 async function signedUrl(ctx,key='default'){
   if(!isKioskOpen())throw Object.assign(Error('Киоск 08:00–22:00 цагт ажиллана.'),{code:403});
   if(!voiceAllowed(voiceEnvironment(ctx),agentId(ctx)))throw Object.assign(Error('ElevenLabs Agent холболт эсвэл мэргэжлийн аюулгүй байдлын зөвшөөрөл тохируулагдаагүй.'),{code:503});
