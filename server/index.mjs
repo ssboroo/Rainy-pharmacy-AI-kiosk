@@ -1,5 +1,6 @@
 import http from 'node:http';
 import {createVoiceIssueBudget} from './kiosk-guard.mjs';
+import {createElevenLabsCreditMonitor} from './elevenlabs-credit.mjs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {readFile,writeFile,rename,mkdir,stat} from 'node:fs/promises';
@@ -31,6 +32,7 @@ const offsite=createOffsiteBackup({
  secretAccessKey:process.env.BACKUP_S3_SECRET_ACCESS_KEY,encryptionKey:process.env.BACKUP_ENCRYPTION_KEY
 });
 const operationsState={postgresConnected:false,offsiteLastVerifiedAt:null,offsiteLastKey:null,offsiteError:null,postgresError:null};
+const elevenLabsCreditMonitor=createElevenLabsCreditMonitor();
 const port=Number(process.env.PORT||3000);
 const registry=createBranchRegistry({dataDir,defaultSettings:DEFAULT_SETTINGS,defaultCatalog:[]});
 let settings={...DEFAULT_SETTINGS},catalog=DEMO_CATALOG.map(v=>({...v}));
@@ -331,6 +333,12 @@ async function handle(req,res){
       }
       const authorized=hasBranch?(registry.authorize(url.searchParams.get('branch'),bearer)||branchLoginAuthorized):isAdmin(req);
       if(!authorized)return respond(res,401,{error:'Зөвшөөрөлгүй.'});
+      if(route==='/api/admin/elevenlabs/credits'&&req.method==='GET'){
+        // Provider credit pool is SHARED by the platform API key, not per branch.
+        // Prevent tenants from inferring platform billing or other customer usage.
+        if(hasBranch)return respond(res,403,{error:'ElevenLabs нэгдсэн хэрэглээг зөвхөн төв админ харна.'});
+        return respond(res,200,await elevenLabsCreditMonitor.get());
+      }
       if(route==='/api/admin/subscription'){
         if(req.method==='GET')return respond(res,200,{subscription:entitlement,history:hasBranch?registry.history(url.searchParams.get('branch')):[]});
       }
