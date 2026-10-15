@@ -30,3 +30,4 @@ test('visualization and face states stay bounded',()=>{
   }
   assert.equal(toneForState('untrusted'),'calm');
 });
+test('STT rejects low confidence',async()=>{const mod=await import('../src/kiosk-policy.js');assert.equal(mod.acceptVoiceTranscript('Энэ эм ямар үнэтэй вэ',0.8),true);assert.equal(mod.acceptVoiceTranscript('за',0.9),false);assert.equal(mod.acceptVoiceTranscript('Энэ эм ямар үнэтэй вэ',0.2),false);});
