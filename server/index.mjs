@@ -316,6 +316,7 @@ async function handle(req,res){
       return respond(res,200,buildCatalogVoiceContext(publicMedicines(ctx),ctx.settings.pharmacyName));
     }
     if(req.method==='GET'&&route==='/api/agent/signed-url'){
+      if(!voiceAllowed(voiceEnvironment(ctx),agentId(ctx)))return respond(res,503,{error:'ElevenLabs Agent холболт эсвэл эмнэлзүйн зөвшөөрөл дутуу.'});
       if(!isBusinessHour())return respond(res,403,{error:'Дуут AI үйлчилгээ Улаанбаатарын цагаар 08:00–22:00 цагт ажиллана.'});
       return respond(res,200,await signedUrl(ctx,(ctx.slug||'central')+':'+String(req.socket.remoteAddress||'unknown')));
     }
