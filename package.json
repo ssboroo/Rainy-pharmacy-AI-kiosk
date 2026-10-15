@@ -14,7 +14,9 @@
     "check": "npm run test && node --check public/admin.js && npm run build"
   },
   "dependencies": {
-    "@elevenlabs/client": "^1.28.0"
+    "@elevenlabs/client": "^1.28.0",
+    "pg": "^8.16.3",
+    "@aws-sdk/client-s3": "^3.913.0"
   },
   "devDependencies": {
     "vite": "^7.1.0"
