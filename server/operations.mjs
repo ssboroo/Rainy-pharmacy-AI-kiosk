@@ -12,12 +12,17 @@ export function createAuditStore({filePath,now=()=>new Date()}){
  async function record(type,branch='default'){
   if(!loaded)throw Error('Not loaded');
   if(!allowed.has(type)||typeof branch!=='string'||!/^(default|[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(branch))throw Error('Invalid audit event');
-  const prev=records.at(-1)?.hash||'GENESIS';
-  const row={at:now().toISOString(),type,branch,prev};
-  row.hash=createHash('sha256').update(JSON.stringify(row)).digest('hex');
-  const next=[...records,row].slice(-2000);
-  const op=queue.catch(()=>{}).then(async()=>{await mkdir(dirname(filePath),{recursive:true});await writeFile(filePath+'.tmp',JSON.stringify({version:1,events:next}));await rename(filePath+'.tmp',filePath);records=next;});
-  queue=op;await op;return row;
+  const op=queue.catch(()=>{}).then(async()=>{
+   const prev=records.at(-1)?.hash||'GENESIS';
+   const row={at:now().toISOString(),type,branch,prev};
+   row.hash=createHash('sha256').update(JSON.stringify(row)).digest('hex');
+   const next=[...records,row].slice(-2000);
+   await mkdir(dirname(filePath),{recursive:true});
+   await writeFile(filePath+'.tmp',JSON.stringify({version:1,events:next}));
+   await rename(filePath+'.tmp',filePath);
+   records=next;return row;
+  });
+  queue=op.then(()=>{},()=>{});return op;
  }
  function list({branch,limit=100}={}){
   if(!loaded)throw Error('Not loaded');
