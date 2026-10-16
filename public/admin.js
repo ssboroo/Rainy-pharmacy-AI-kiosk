@@ -20,6 +20,7 @@ $('login').onclick=async()=>{
   try{
     const [s,c]=await Promise.all([api('settings'),api('catalog')]);
     const config=s.settings;
+    loadIdleAds(config.idleAds);
     for(const key of ['pharmacyName','assistantName','greeting','locationName','agentId','defaultAvatar','accent']) if($(key))$(key).value=config[key];
     $('idleTimeoutSec').value=config.idleTimeoutSec??120;
     $('resetOnDisconnect').checked=config.resetOnDisconnect!==false;
@@ -637,3 +638,36 @@ function startElevenLabsCreditsPolling(){
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refreshElevenLabsCredits();});
 }
 $('elevenlabsCreditRefresh').onclick=refreshElevenLabsCredits;
+
+let adsItems=[];
+function loadIdleAds(config){
+ const c=config||{enabled:false,idleSec:30,placement:'stage',items:[]};
+ adsItems=c.items.map(x=>({...x}));$('adsEnabled').checked=c.enabled;$('adsIdleSec').value=c.idleSec;$('adsPlacement').value=c.placement;renderIdleAds();
+}
+function adsSettings(){return {enabled:$('adsEnabled').checked,idleSec:Number($('adsIdleSec').value),placement:$('adsPlacement').value,items:adsItems};}
+async function saveIdleAds(){const r=await api('idle-ads','PUT',{idleAds:adsSettings()});loadIdleAds(r.idleAds);$('adsStatus').textContent='Хадгаллаа. Киоск дээр 1 минутын дотор шинэчлэгдэнэ.';}
+function renderIdleAds(){
+ const list=$('adsList');list.replaceChildren();
+ if(!adsItems.length){list.textContent='Одоогоор зар нэмээгүй.';return;}
+ adsItems.forEach((item,i)=>{
+  const row=document.createElement('div');row.style.cssText='display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid #d8e5df';
+  const preview=document.createElement(item.type==='video'?'video':'img');preview.src=item.url;preview.style.cssText='width:96px;height:80px;object-fit:contain;background:#e9f1ec;border-radius:12px';
+  if(item.type==='video'){preview.controls=true;preview.muted=true;preview.preload='metadata';}else preview.alt=item.title;
+  const name=document.createElement('input');name.value=item.title;name.maxLength=100;name.setAttribute('aria-label','Зарын нэр');name.oninput=()=>{item.title=name.value;};
+  const duration=document.createElement('input');duration.type='number';duration.min=5;duration.max=120;duration.value=item.durationSec;duration.style.width='85px';duration.setAttribute('aria-label','Зар харуулах секунд');duration.oninput=()=>{item.durationSec=Number(duration.value);};
+  const label=document.createElement('span');label.textContent='секунд (видео эрт дуусвал дараагийн зар)';
+  const up=document.createElement('button');up.type='button';up.textContent='↑';up.disabled=i===0;up.onclick=()=>{[adsItems[i-1],adsItems[i]]=[adsItems[i],adsItems[i-1]];renderIdleAds();};
+  const remove=document.createElement('button');remove.type='button';remove.textContent='Устгах';remove.onclick=async()=>{remove.disabled=true;const before=adsItems.slice();adsItems=adsItems.filter(x=>x!==item);try{await saveIdleAds();await api('idle-ads/file','DELETE',{url:item.url});}catch(e){adsItems=before;renderIdleAds();$('adsStatus').textContent=e.message;}};
+  row.append(preview,name,duration,label,up,remove);list.append(row);
+ });
+}
+$('adsSave').onclick=async()=>{try{await saveIdleAds();}catch(e){$('adsStatus').textContent=e.message;}};
+$('adsUpload').onclick=async()=>{
+ const file=$('adsFile').files[0];if(!file){$('adsStatus').textContent='Эхлээд файл сонгоно уу.';return;}
+ if(file.size>20*1024*1024||adsItems.length>=12){$('adsStatus').textContent='Файл 20 MB хүртэл, ихдээ 12 зар байна.';return;}
+ $('adsUpload').disabled=true;$('adsStatus').textContent='Файл хуулж байна…';
+ try{const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
+  const uploaded=await api('idle-ads/upload','POST',{data});adsItems.push({...uploaded,title:file.name.slice(0,100),durationSec:uploaded.type==='video'?30:10});
+  renderIdleAds();$('adsFile').value='';$('adsStatus').textContent='Файл нэмэгдлээ. Идэвхжүүлээд «Зарын тохиргоо хадгалах» дарна уу.';
+ }catch(e){$('adsStatus').textContent=e.message;}finally{$('adsUpload').disabled=false;}
+};

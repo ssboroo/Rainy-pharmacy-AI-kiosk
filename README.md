@@ -267,3 +267,9 @@ The platform owner admin (not branch admins or public kiosks) can see the Eleven
 ## ElevenLabs PAYG API usage
 
 The existing server-side ELEVENLABS_API_KEY is used for API requests and signed Agent connections. There is no separate PAYG endpoint or key. Enable and fund Top Up in the same ElevenLabs workspace as the key and agent. The provider consumes included subscription credits first, then PAYG. The admin included-credit monitor never blocks API requests when the included balance reaches zero or is unavailable. PAYG availability and balance are not inferred from the subscription endpoint. Top Up purchases and auto-recharge remain provider-account actions. Reference: https://elevenlabs.io/docs/overview/administration/pay-as-you-go
+
+## Idle advertising display
+
+Admin → Брэнд, AI тохиргоо → Хүлээлгийн дэлгэцийн зураг, видео зар. Upload PNG/JPEG/WebP or MP4/WebM (20 MiB per file, 12 playlist entries), set order/duration and inactivity delay (15–900 seconds), enable and save. The default layout shows a large advertisement above the existing animated avatar in miniature. Optional fullscreen mode uses the same footer. Tapping or speaking exits advertising without starting a paid voice session automatically. Active conversations, camera/modals and hidden tabs suppress ads. Videos are muted, fit without cropping, and advance on completion or the configured maximum duration. Failed media is skipped; an empty/disabled playlist never covers the kiosk.
+
+The kiosk refreshes its branch playlist every minute. Uploads require the existing branch admin authentication and are stored on DATA_DIR/kiosk-ads on the persistent volume; each branch has a 120 MiB/30-file cap including drafts. Only uploaded same-origin media is accepted. Video responses support byte ranges. Raw media files are not part of the existing JSON snapshot export; preserve the persistent volume separately. Ads start disabled until an admin uploads and publishes content.

@@ -5,6 +5,8 @@ import {existsSync} from 'node:fs';
 import {resolve} from 'node:path';
 
 const allowed=new Map([
+ ['/src/idle-ads.js',{file:'src/idle-ads.js',type:'text/javascript'}],
+ ['/src/idle-ads.css',{file:'src/idle-ads.css',type:'text/css'}],
  ['/',{file:'tests/fixtures/avatar-smoke.html',type:'text/html; charset=utf-8'}],
  ['/src/avatar-25d.js',{file:'src/avatar-25d.js',type:'text/javascript'}],
  ['/src/avatar-idle.js',{file:'src/avatar-idle.js',type:'text/javascript'}],

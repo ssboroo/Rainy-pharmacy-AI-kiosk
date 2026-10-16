@@ -1,3 +1,4 @@
+import {validateIdleAds} from './idle-ads.mjs';
 import {EXAMPLE_MEDICINES} from './demo-catalog.mjs';
 import {matchMedicineSpoken} from '../src/medicine-panel.js';
 export const AVATARS = [
@@ -62,6 +63,7 @@ const txt=(v,max)=>typeof v==='string'?v.trim().slice(0,max):'';
 export function validateSettings(input,prev=DEFAULT_SETTINGS) {
   if(!input||typeof input!=='object'||Array.isArray(input)) throw Error('Тохиргооны формат буруу.');
   const next={...prev};
+  if('idleAds' in input)next.idleAds=validateIdleAds(input.idleAds);
   for(const key of ['pharmacyName','assistantName','greeting','locationName']) if(key in input){
     if(typeof input[key]!=='string'||!input[key].trim()) throw Error(key+' хоосон байж болохгүй.');
     next[key]=txt(input[key],key==='greeting'?300:80);

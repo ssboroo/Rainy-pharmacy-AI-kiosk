@@ -1,0 +1,15 @@
+.idle-ad-panel[hidden]{display:none!important}
+.stage-card{position:relative}
+.idle-ad-panel{position:absolute;inset:0;z-index:30;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:20px;gap:14px;border-radius:inherit;background:linear-gradient(160deg,#f1f8f5,#d6ebe2);overflow:hidden;color:#143e30}
+.idle-ad-badge{font-size:10px;font-weight:800;letter-spacing:2px;padding:5px 2px;opacity:.65}
+.idle-ad-media{min-height:0;overflow:hidden;border-radius:22px;background:#102b23;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 35px #123b2d20}
+.idle-ad-content{display:block;width:100%;height:100%;object-fit:contain}
+.idle-ad-footer{display:flex;gap:12px;align-items:center;min-height:110px;padding:8px 12px;background:#ffffffdf;border:1px solid #cfe2d9;border-radius:22px}
+.idle-ad-footer>div:nth-child(2){flex:1;min-width:0}.idle-ad-footer strong,.idle-ad-footer span{display:block}.idle-ad-footer strong{font-size:16px}.idle-ad-footer span{font-size:12px;line-height:1.5;margin-top:5px;color:#4c7062}
+.idle-ad-avatar{width:94px;height:104px;flex:0 0 94px;overflow:hidden;position:relative}
+.idle-ad-avatar #avatar25,.immersive-kiosk .idle-ad-avatar #avatar25{position:relative!important;inset:auto!important;width:100%!important;height:100%!important;min-height:0!important;transform:none!important;display:block!important}
+.idle-ad-avatar #avatar25 svg,.immersive-kiosk .idle-ad-avatar #avatar25 svg{width:100%!important;height:100%!important;transform:scale(1.18)!important}
+.idle-ad-avatar #avatarMount{transform:scale(.3)!important;transform-origin:top left;margin:0!important}
+.idle-ad-start{border:0;border-radius:14px;background:#185d43;color:white;padding:14px 16px;font-weight:800;cursor:pointer;white-space:nowrap}
+.idle-ad-fullscreen .idle-ad-panel{position:fixed;inset:16px;z-index:2000;border-radius:28px;grid-template-rows:auto minmax(0,1fr) auto;box-shadow:0 0 0 20px #e8f3ed}
+@media(max-width:600px){.idle-ad-panel{padding:12px;gap:10px}.idle-ad-footer{gap:8px;padding:6px}.idle-ad-avatar{width:68px;flex-basis:68px;height:88px}.idle-ad-footer strong{font-size:13px}.idle-ad-footer span{font-size:11px}.idle-ad-start{padding:12px 9px;font-size:12px}}

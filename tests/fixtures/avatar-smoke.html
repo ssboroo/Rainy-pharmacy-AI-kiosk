@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="mn"><head><meta charset="utf-8">
 <style>html,body{margin:0;background:#d6f2e9}#avatar25{width:680px;height:680px;position:relative;--look-x:0px;--look-y:0px;--head-turn:0deg}</style>
-<link rel="stylesheet" href="/src/avatar-25d.css"></head>
+<link rel="stylesheet" href="/src/avatar-25d.css"><link rel="stylesheet" href="/src/idle-ads.css"></head>
 <body data-smoke="pending"><div id="avatar25"></div>
 <script type="module">
 import {IllustratedAvatar25D,AVATAR_STYLES} from '/src/avatar-25d.js';
+import {createIdleAds} from '/src/idle-ads.js';
 const out=document.body;
 try{
  const avatar=new IllustratedAvatar25D(document.getElementById('avatar25'));
@@ -39,6 +40,19 @@ try{
    delete layer.dataset.idleGesture;
    layer.dataset.ambientEye='center';
  }
+ const layer=document.getElementById('avatar25'),home=layer.parentNode;
+ const host=document.createElement('section');host.className='stage-card';host.style.cssText='width:700px;height:900px';document.body.append(host);
+ let clock=0,busy=false;
+ const playlist={enabled:true,idleSec:15,placement:'stage',items:[{type:'image',title:'Demo',durationSec:10,url:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="green"/></svg>'}]};
+ const ads=createIdleAds({host,getAvatar:()=>layer,canShow:()=>!busy,now:()=>clock,load:async()=>({idleAds:playlist})});
+ await new Promise(r=>setTimeout(r,10));clock=16000;await new Promise(r=>setTimeout(r,550));
+ if(host.querySelector('.idle-ad-panel').hidden||!host.querySelector('.idle-ad-avatar').contains(layer))throw Error('Idle ads failed to show with the original miniature avatar');
+ if(layer.getBoundingClientRect().width>110)throw Error('Idle avatar did not shrink');
+ document.dispatchEvent(new Event('pointerdown',{bubbles:true}));
+ if(!host.querySelector('.idle-ad-panel').hidden||layer.parentNode!==home)throw Error('Tap failed to dismiss ad and restore original avatar');
+ busy=true;clock=50000;await new Promise(r=>setTimeout(r,550));
+ if(!host.querySelector('.idle-ad-panel').hidden)throw Error('Advertisement covered active voice');
+ ads.dispose();host.remove();
  avatar.dispose();
  out.dataset.smoke='pass';
  out.dataset.checked=Object.keys(AVATAR_STYLES).join(',');

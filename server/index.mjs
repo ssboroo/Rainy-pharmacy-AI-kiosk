@@ -1,3 +1,4 @@
+import {EMPTY_ADS,validateIdleAds,adScope,ownsAd,storeAd,deleteAd,serveAd} from './idle-ads.mjs';
 import http from 'node:http';
 import {createVoiceIssueBudget} from './kiosk-guard.mjs';
 import {createElevenLabsCreditMonitor} from './elevenlabs-credit.mjs';
@@ -242,6 +243,8 @@ async function handle(req,res){
     // however no public AI, inventory, tracking or vision endpoints run.
     if(hasBranch&&!entitlement.active&&route.startsWith('/api/')&&!route.startsWith('/api/admin/')&&route!=='/api/health'&&route!=='/api/bootstrap')
       return respond(res,403,{error:'Салбарын үйлчилгээний эрх идэвхгүй эсвэл хугацаа дууссан. Админтай холбогдоно уу.',subscription:entitlement});
+    if(route.startsWith('/media/kiosk-ads/')&&(req.method==='GET'||req.method==='HEAD'))return serveAd(req,res,dataDir,route);
+    if(req.method==='GET'&&route==='/api/idle-ads')return respond(res,200,{idleAds:ctx.settings.idleAds||EMPTY_ADS});
     if(req.method==='GET'&&route==='/api/health')return respond(res,200,{status:'ok',service:'RAINY Pharmacy'});
     if(req.method==='GET'&&route==='/api/bootstrap')return respond(res,200,{
       pharmacyName:ctx.settings.pharmacyName,assistantName:ctx.settings.assistantName,greeting:ctx.settings.greeting,defaultAvatar:ctx.settings.defaultAvatar,accent:ctx.settings.accent,locationName:ctx.settings.locationName,idleTimeoutSec:ctx.settings.idleTimeoutSec??120,resetOnDisconnect:ctx.settings.resetOnDisconnect!==false,avatarIdleEnabled:ctx.settings.avatarIdleEnabled!==false,logoData:ctx.settings.logoData||'',branchSlug:hasBranch?url.searchParams.get('branch'):'',subscription:entitlement,
@@ -524,10 +527,30 @@ async function handle(req,res){
         await audit.record('backup.exported',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{backup:snapshot});
       }
+      if(route==='/api/admin/idle-ads/upload'&&req.method==='POST'){
+        const input=await bodyJson(req,28100000);
+        const file=await storeAd(dataDir,adScope(ctx,defaultBranch),input?.data).catch(e=>{e.code=400;throw e;});
+        return respond(res,201,file);
+      }
+      if(route==='/api/admin/idle-ads'&&req.method==='PUT'){
+        const input=await bodyJson(req,20000);
+        const ads=validateInput(()=>validateIdleAds(input.idleAds));
+        if(ads.items.some(x=>!ownsAd(x.url,adScope(ctx,defaultBranch))))return respond(res,400,{error:'Өөр байгууллагын зарын файл ашиглах боломжгүй.'});
+        await ctx.updateSettings({idleAds:ads});
+        await audit.record('settings.updated',adScope(ctx,defaultBranch));
+        return respond(res,200,{idleAds:ads});
+      }
+      if(route==='/api/admin/idle-ads/file'&&req.method==='DELETE'){
+        const input=await bodyJson(req,1000);
+        if((ctx.settings.idleAds?.items||[]).some(x=>x.url===input.url))return respond(res,409,{error:'Эхлээд зараа жагсаалтаас хасаж хадгална уу.'});
+        await deleteAd(dataDir,adScope(ctx,defaultBranch),input.url);
+        return respond(res,200,{deleted:true});
+      }
       if(req.method==='GET'&&route==='/api/admin/settings')return respond(res,200,{settings:ctx.settings});
       if(req.method==='GET'&&route==='/api/admin/catalog')return respond(res,200,{items:ctx.catalog});
       if(req.method==='PUT'&&route==='/api/admin/settings'){
         const input=await bodyJson(req,305000);
+        if(Array.isArray(input?.idleAds?.items)&&input.idleAds.items.some(x=>!ownsAd(x.url,adScope(ctx,defaultBranch))))return respond(res,400,{error:'Өөр байгууллагын зар ашиглах боломжгүй.'});
         const value=await ctx.updateSettings(input);
         await audit.record('settings.updated',hasBranch?url.searchParams.get('branch'):'default');
         return respond(res,200,{settings:value});

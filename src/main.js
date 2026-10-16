@@ -1,3 +1,5 @@
+import {createIdleAds} from './idle-ads.js';
+import './idle-ads.css';
 import {Conversation} from '@elevenlabs/client';
 import {createVoiceAttempt,voiceFailureMessage} from './voice-session.js';
 import {ELEVENLABS_WORKLET_PATHS} from './voice-worklets.js';
@@ -20,6 +22,7 @@ let avatar25=null,localSessionWanted=false;
 let analyticsSessionRecorded=false;
 let resettingVisitor=false,visitorEpoch=0;
 let voiceCapTimer=null,voiceAttempt=null;
+let idleAdsController=null;
 const WAKE_STORAGE_KEY='rainy-kiosk-microphone-enabled-v1';
 const KIOSK_STORAGE_KEY='rainy-kiosk-immersive-v1';
 const byId={nomi:'Таны найрсаг робот туслах',mira:'Таны ухаалаг AI зөвлөх',kiki:'Таны өхөөрдөм AI анд',aria:'Таны дижитал туслах',bobo:'Таны хөөрхөн AI найз'};
@@ -64,6 +67,7 @@ async function resetVisitorSession(){
 }
 function activity(){
   if(resettingVisitor)return;
+  idleAdsController?.activity();
   avatar25?.notifyActivity();
   clearTimeout(resetTimer);
   const seconds=Number.isInteger(config?.idleTimeoutSec)?config.idleTimeoutSec:120;
@@ -743,6 +747,7 @@ async function init(){
       document.body.classList.add('immersive-kiosk');
       requestAnimationFrame(()=>avatar25?.resize());
     }
+    idleAdsController=createIdleAds({host:document.querySelector('.stage-card'),getAvatar:()=>document.getElementById('avatar25')||document.getElementById('avatarMount'),canShow:()=>!conversation&&!recognition&&!voiceStarting&&!resettingVisitor&&$('overlay').hidden,load:()=>api('/idle-ads'),onResize:()=>avatar25?.resize()});
     await restoreMicIfGranted();
     activity();
   }catch(e){
@@ -751,6 +756,6 @@ async function init(){
   }
 }
 init();
-window.addEventListener('beforeunload',()=>{avatar25?.dispose();wakeListener?.disable();cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
+window.addEventListener('beforeunload',()=>{idleAdsController?.dispose();avatar25?.dispose();wakeListener?.disable();cameraStream?.getTracks().forEach(t=>t.stop());conversation?.endSession();});
 
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));
