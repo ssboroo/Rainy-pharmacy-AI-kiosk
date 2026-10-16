@@ -10,7 +10,7 @@ import './avatar-25d.css';
 import './kiosk-finish.css';
 import {IllustratedAvatar25D} from './avatar-25d.js';
 import {WakeGreetingListener} from './kiosk-voice.js';
-import {toneForState,acceptVoiceTranscript} from './kiosk-policy.js';
+import {acceptVoiceTranscript} from './kiosk-policy.js';
 const $=id=>document.getElementById(id);
 const branchSlug=new URLSearchParams(window.location.search).get('branch')||'';
 const scopedPath=route=>route+(branchSlug?(route.includes('?')?'&':'?')+'branch='+encodeURIComponent(branchSlug):'');
@@ -149,11 +149,6 @@ function addMessage(role,text){
 function setStatus(state){
   currentVoiceState=state;
   avatar25?.setState(state);
-  const mount=$('avatarMount');
-  mount.classList.toggle('speaking',state==='speaking');
-  mount.classList.toggle('listening',state==='listening'||state==='wake');
-  mount.classList.toggle('thinking',state==='connecting');
-  mount.dataset.expression=toneForState(state);
   $('waveform').classList.toggle('active',state==='speaking'||state==='listening'||state==='wake');
   $('statusLabel').textContent=state==='speaking'?'AI туслах ярьж байна':state==='listening'?'Таныг сонсож байна':state==='wake'?'«Сайн байна уу» гэж хэлээрэй':state==='connecting'?'Холбогдож байна':'Танд туслахад бэлэн';
   $('meterLabel').textContent=state==='speaking'?'AI ярьж байна':state==='listening'?'Сонсож байна':state==='wake'?'Мэндчилгээ хүлээж байна':'Танд туслахад бэлэн';
@@ -162,7 +157,6 @@ function selectAvatar(id){
   const data=config.avatars.find(a=>a.id===id);if(!data)return;
   selected=id;
   avatar25?.setAvatar(id);
-  $('avatarMount').className='portrait '+id;
   setStatus(currentVoiceState);
   $('assistantTitle').textContent=id===config.defaultAvatar&&config.assistantName?config.assistantName:data.name;
   $('personaSubtitle').textContent=byId[id];
@@ -205,8 +199,6 @@ function setWave(level) {
   lastVisualLevel=lastVisualLevel*.55+next*.45;
   avatar25?.setLevel(lastVisualLevel);
   const strength=lastVisualLevel;
-  $('avatarMount').style.setProperty('--mouth-level',strength.toFixed(3));
-  $('avatarMount').style.setProperty('--face-lift',(strength*4).toFixed(2)+'px');
   const bars=$('waveform').querySelectorAll('i');
   bars.forEach((bar,index)=>{
     const phase=Math.abs(Math.sin(index*1.21+performance.now()*.003));
@@ -629,6 +621,7 @@ async function loadPremium2D5(){
     stage.classList.remove('avatar-25d-ready');
     document.body.dataset.avatarEngine='css-fallback';
     layer.remove();
+    const notice=document.createElement('p');notice.className='avatar-load-error';notice.textContent='AI дүр ачаалсангүй. Хуудсыг шинэчилнэ үү.';stage.append(notice);
   }
 }
 function closeSidebarDrawer({restoreFocus=false}={}){
@@ -747,7 +740,7 @@ async function init(){
       document.body.classList.add('immersive-kiosk');
       requestAnimationFrame(()=>avatar25?.resize());
     }
-    idleAdsController=createIdleAds({host:document.querySelector('.stage-card'),getAvatar:()=>document.getElementById('avatar25')||document.getElementById('avatarMount'),canShow:()=>!conversation&&!recognition&&!voiceStarting&&!resettingVisitor&&$('overlay').hidden,load:()=>api('/idle-ads'),onResize:()=>avatar25?.resize()});
+    idleAdsController=createIdleAds({host:document.querySelector('.stage-card'),getAvatar:()=>document.getElementById('avatar25'),canShow:()=>!conversation&&!recognition&&!voiceStarting&&!resettingVisitor&&$('overlay').hidden,load:()=>api('/idle-ads'),onResize:()=>avatar25?.resize()});
     await restoreMicIfGranted();
     activity();
   }catch(e){
